@@ -144,7 +144,7 @@ class CardRenderer {
     // ========== 카드 앞면/뒷면 ==========
 
     /**
-     * 카드 앞면 그리기 (부드러운 파스텔 스타일)
+     * 카드 앞면 그리기 (3D Toy 스타일)
      *
      * @private
      * @param {Card} card
@@ -154,29 +154,79 @@ class CardRenderer {
 
         push();
 
-        // 부드러운 그림자
-        drawingContext.shadowBlur = 12;
-        drawingContext.shadowColor = 'rgba(0, 0, 0, 0.1)';
-        drawingContext.shadowOffsetY = 4;
+        const cardColor = this.cardColors[card.id % this.cardColors.length];
+        const cardColorObj = color(cardColor);
 
-        // 카드 배경색 (흰색)
-        fill(this.style.surfaceWhite);
+        // Layer 1: 깊은 그림자 (3D depth)
+        fill(0, 0, 0, 30);
         noStroke();
+        rect(3, 7, this.config.width, this.config.height, this.style.borderRadius);
+
+        // Layer 2: 카드 베이스 (약간 어두운 색)
+        fill(
+            red(cardColorObj) * 0.75,
+            green(cardColorObj) * 0.75,
+            blue(cardColorObj) * 0.75
+        );
+        rect(0, 4, this.config.width, this.config.height, this.style.borderRadius);
+
+        // Layer 3: 메인 카드 배경 (그라데이션)
+        const gradient = drawingContext.createLinearGradient(
+            -this.config.width / 2, -this.config.height / 2,
+            this.config.width / 2, this.config.height / 2
+        );
+        gradient.addColorStop(0, '#FFFFFF');
+        gradient.addColorStop(1, '#F5F9FF');
+
+        drawingContext.fillStyle = gradient;
+        drawingContext.shadowBlur = 15;
+        drawingContext.shadowColor = cardColor;
+        drawingContext.shadowOffsetY = 0;
+
+        drawingContext.beginPath();
+        drawingContext.roundRect(
+            -this.config.width / 2, -this.config.height / 2,
+            this.config.width, this.config.height,
+            this.style.borderRadius
+        );
+        drawingContext.fill();
+
+        // Layer 4: 하이라이트 (상단 빛 반사)
+        const highlightGradient = drawingContext.createLinearGradient(
+            0, -this.config.height / 2,
+            0, 0
+        );
+        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+        highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        drawingContext.fillStyle = highlightGradient;
+        drawingContext.shadowBlur = 0;
+
+        drawingContext.beginPath();
+        drawingContext.roundRect(
+            -this.config.width / 2 + 10, -this.config.height / 2 + 8,
+            this.config.width - 20, this.config.height / 2.5,
+            this.style.borderRadius
+        );
+        drawingContext.fill();
+
+        // Layer 5: 컬러 테두리 (파스텔)
+        noFill();
+        strokeWeight(6);
+        stroke(cardColor);
+        drawingContext.shadowBlur = 10;
+        drawingContext.shadowColor = cardColor;
         rect(0, 0,
-             this.config.width,
-             this.config.height,
+             this.config.width - 6,
+             this.config.height - 6,
              this.style.borderRadius);
 
-        // 부드러운 파스텔 테두리
-        const cardColor = this.cardColors[card.id % this.cardColors.length];
-        noFill();
-        strokeWeight(5);
-        stroke(255); // 흰색 테두리
-
-        drawingContext.shadowBlur = 0; // 테두리는 그림자 없음
+        // Layer 6: 흰색 외곽선
+        strokeWeight(3);
+        stroke(255);
+        drawingContext.shadowBlur = 0;
         rect(0, 0,
-             this.config.width - 5,
-             this.config.height - 5,
+             this.config.width - 3,
+             this.config.height - 3,
              this.style.borderRadius);
 
         // 카드 이모지 표시
@@ -185,24 +235,37 @@ class CardRenderer {
         textAlign(CENTER, CENTER);
         textSize(this.config.width * 0.5);
 
-        drawingContext.shadowBlur = 0;
+        // 이모지 입체감
+        drawingContext.shadowBlur = 8;
+        drawingContext.shadowColor = cardColor;
+        drawingContext.shadowOffsetX = 2;
+        drawingContext.shadowOffsetY = 2;
         text(emoji, 0, 0);
 
-        // 매칭 완료 시 부드러운 오버레이
+        // 매칭 완료 시 반짝이는 오버레이
         if (card.isMatched) {
-            fill(180, 248, 200, 80); // 파스텔 민트 오버레이
+            const sparkle = 1 + sin(frameCount * 0.2) * 0.15;
+            fill(180, 248, 200, 100 * sparkle);
             noStroke();
             rect(0, 0,
-                 this.config.width - 10,
-                 this.config.height - 10,
+                 this.config.width - 12,
+                 this.config.height - 12,
                  this.style.borderRadius);
+
+            // 별 장식
+            push();
+            textSize(30);
+            fill(255, 255, 255, 200 * sparkle);
+            text('✨', -this.config.width / 3, -this.config.height / 3);
+            text('✨', this.config.width / 3, this.config.height / 3);
+            pop();
         }
 
         pop();
     }
 
     /**
-     * 카드 뒷면 그리기 (부드러운 파스텔 스타일)
+     * 카드 뒷면 그리기 (3D Toy 스타일)
      *
      * @private
      * @param {Card} card
@@ -212,62 +275,120 @@ class CardRenderer {
 
         push();
 
-        // 부드러운 그림자
-        drawingContext.shadowBlur = 12;
-        drawingContext.shadowColor = 'rgba(0, 0, 0, 0.1)';
-        drawingContext.shadowOffsetY = 4;
-
-        // 파스텔 블루 배경
-        fill(this.style.cardBackColor);
+        // Layer 1: 깊은 그림자
+        fill(0, 0, 0, 30);
         noStroke();
-        rect(0, 0,
-             this.config.width,
-             this.config.height,
-             this.style.borderRadius);
+        rect(3, 7, this.config.width, this.config.height, this.style.borderRadius);
 
-        // 흰색 테두리
-        noFill();
-        strokeWeight(5);
-        stroke(255);
+        // Layer 2: 카드 베이스 (더 어두운 블루)
+        const baseColor = color(this.style.cardBackColor);
+        fill(
+            red(baseColor) * 0.7,
+            green(baseColor) * 0.7,
+            blue(baseColor) * 0.7
+        );
+        rect(0, 4, this.config.width, this.config.height, this.style.borderRadius);
+
+        // Layer 3: 메인 카드 배경 (그라데이션)
+        const gradient = drawingContext.createLinearGradient(
+            -this.config.width / 2, -this.config.height / 2,
+            this.config.width / 2, this.config.height / 2
+        );
+        gradient.addColorStop(0, this.style.cardBackColor);
+        gradient.addColorStop(1, '#9AC4FF');
+
+        drawingContext.fillStyle = gradient;
+        drawingContext.shadowBlur = 15;
+        drawingContext.shadowColor = this.style.cardBackColor;
+        drawingContext.shadowOffsetY = 0;
+
+        drawingContext.beginPath();
+        drawingContext.roundRect(
+            -this.config.width / 2, -this.config.height / 2,
+            this.config.width, this.config.height,
+            this.style.borderRadius
+        );
+        drawingContext.fill();
+
+        // Layer 4: 하이라이트 (상단 빛 반사)
+        const highlightGradient = drawingContext.createLinearGradient(
+            0, -this.config.height / 2,
+            0, 0
+        );
+        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.7)');
+        highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        drawingContext.fillStyle = highlightGradient;
         drawingContext.shadowBlur = 0;
+
+        drawingContext.beginPath();
+        drawingContext.roundRect(
+            -this.config.width / 2 + 10, -this.config.height / 2 + 8,
+            this.config.width - 20, this.config.height / 2.5,
+            this.style.borderRadius
+        );
+        drawingContext.fill();
+
+        // Layer 5: 흰색 외곽선
+        noFill();
+        strokeWeight(6);
+        stroke(255);
         rect(0, 0,
-             this.config.width - 5,
-             this.config.height - 5,
+             this.config.width - 6,
+             this.config.height - 6,
              this.style.borderRadius);
 
-        // 귀여운 하트 패턴
+        // 귀여운 패턴
         this._drawBackPattern();
 
         pop();
     }
 
     /**
-     * 뒷면 패턴 그리기 (귀여운 하트 패턴)
+     * 뒷면 패턴 그리기 (별과 하트 패턴, 입체감)
      *
      * @private
      */
     _drawBackPattern() {
         push();
 
-        // 중앙 하트
-        noStroke();
-        fill(255, 255, 255, 150); // 반투명 흰색
-        textAlign(CENTER, CENTER);
-        textSize(this.config.width * 0.3);
-        text('♥', 0, 0);
+        const pulse = 1 + sin(frameCount * 0.08) * 0.05;
 
-        // 작은 하트들
+        // 중앙 회전하는 별
+        push();
+        rotate(frameCount * 0.02);
+        scale(pulse);
+
+        // 별 그림자
+        noStroke();
+        fill(0, 0, 0, 30);
+        textAlign(CENTER, CENTER);
+        textSize(this.config.width * 0.35);
+        text('⭐', 2, 2);
+
+        // 메인 별
+        fill(255, 255, 255, 200);
+        drawingContext.shadowBlur = 8;
+        drawingContext.shadowColor = 'rgba(255, 255, 255, 0.8)';
+        text('⭐', 0, 0);
+        pop();
+
+        // 작은 하트들 (회전)
+        drawingContext.shadowBlur = 0;
         textSize(this.config.width * 0.15);
-        fill(255, 255, 255, 100);
+        fill(255, 255, 255, 120);
         const positions = [
-            [-25, -25],
-            [25, -25],
-            [-25, 25],
-            [25, 25]
+            { x: -30, y: -30, rotation: frameCount * 0.03 },
+            { x: 30, y: -30, rotation: -frameCount * 0.025 },
+            { x: -30, y: 30, rotation: -frameCount * 0.02 },
+            { x: 30, y: 30, rotation: frameCount * 0.035 }
         ];
 
-        positions.forEach(([x, y]) => {
-            text('♥', x, y);
+        positions.forEach(({ x, y, rotation }) => {
+            push();
+            translate(x, y);
+            rotate(rotation);
+            text('♥', 0, 0);
+            pop();
         });
 
         pop();

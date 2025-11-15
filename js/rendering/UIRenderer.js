@@ -179,7 +179,7 @@ class UIRenderer {
     }
 
     /**
-     * 부드러운 난이도 버튼 그리기
+     * 3D 난이도 버튼 그리기 (입체감 강화)
      *
      * @private
      */
@@ -188,47 +188,84 @@ class UIRenderer {
 
         push();
 
-        // 호버 시 부드러운 떠오름
-        const hoverOffset = isHovered ? -6 : 0;
-        const hoverScale = isHovered ? 1.02 : 1;
+        // Spring bounce 효과
+        const bounceOffset = isHovered ? sin(frameCount * 0.3) * 3 : 0;
+        const hoverOffset = isHovered ? -10 : 0;
+        const hoverScale = isHovered ? 1.03 : 1;
+        const pressDepth = isHovered ? 3 : 8;
 
-        translate(x + w / 2, y + h / 2 + hoverOffset);
+        translate(x + w / 2, y + h / 2 + hoverOffset + bounceOffset);
         scale(hoverScale);
         translate(-(x + w / 2), -(y + h / 2));
 
-        // 버튼 배경 (파스텔)
-        fill(pastelColor);
+        // Layer 1: 깊은 그림자
+        fill(0, 0, 0, 25);
         noStroke();
-        drawingContext.shadowBlur = isHovered ? 12 : 8;
-        drawingContext.shadowColor = 'rgba(0, 0, 0, 0.15)';
-        drawingContext.shadowOffsetY = isHovered ? 8 : 6;
-        rect(x, y, w, h, this.style.buttonRadius);
+        rect(x + 6, y + pressDepth + 10, w, h, this.style.buttonRadius);
 
-        // 흰색 테두리 (스티커 느낌)
-        noFill();
-        stroke(this.style.surfaceWhite);
-        strokeWeight(5);
+        // Layer 2: 버튼 베이스 (더 어두운 색)
+        const baseColor = color(pastelColor);
+        fill(
+            red(baseColor) * 0.65,
+            green(baseColor) * 0.65,
+            blue(baseColor) * 0.65
+        );
+        rect(x, y + pressDepth, w, h, this.style.buttonRadius);
+
+        // Layer 3: 메인 버튼 (그라데이션)
+        const gradient = drawingContext.createLinearGradient(x, y, x, y + h);
+        gradient.addColorStop(0, pastelColor);
+        const darkerColor = color(pastelColor);
+        gradient.addColorStop(1, `rgba(${red(darkerColor) * 0.85}, ${green(darkerColor) * 0.85}, ${blue(darkerColor) * 0.85}, 1)`);
+
+        drawingContext.fillStyle = gradient;
+        drawingContext.shadowBlur = isHovered ? 20 : 12;
+        drawingContext.shadowColor = pastelColor;
+        drawingContext.shadowOffsetY = 0;
+
+        drawingContext.beginPath();
+        drawingContext.roundRect(x, y, w, h, this.style.buttonRadius);
+        drawingContext.fill();
+
+        // Layer 4: 하이라이트 (상단 빛 반사)
+        const highlightGradient = drawingContext.createLinearGradient(x, y, x, y + h / 2);
+        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+        highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        drawingContext.fillStyle = highlightGradient;
         drawingContext.shadowBlur = 0;
+
+        drawingContext.beginPath();
+        drawingContext.roundRect(x + 15, y + 8, w - 30, h / 2.5, this.style.buttonRadius);
+        drawingContext.fill();
+
+        // Layer 5: 흰색 외곽선
+        noFill();
+        stroke(255);
+        strokeWeight(7);
         rect(x, y, w, h, this.style.buttonRadius);
 
         // 난이도 이름
         noStroke();
         fill(this.style.textPrimary);
         textAlign(CENTER, CENTER);
-        textSize(38);
+        textSize(42);
         textStyle(BOLD);
-        drawingContext.shadowBlur = 2;
-        drawingContext.shadowColor = 'rgba(0, 0, 0, 0.1)';
-        drawingContext.shadowOffsetY = 2;
-        text(config.name, x + w / 2, y + h / 2 - 16);
+
+        // 텍스트 입체감
+        drawingContext.shadowBlur = 4;
+        drawingContext.shadowColor = 'rgba(255, 255, 255, 0.9)';
+        drawingContext.shadowOffsetX = 1;
+        drawingContext.shadowOffsetY = 1;
+        text(config.name, x + w / 2, y + h / 2 - 18);
 
         // 상세 정보
-        textSize(18);
+        textSize(19);
         textStyle(NORMAL);
         fill(this.style.textSecondary);
-        drawingContext.shadowBlur = 0;
+        drawingContext.shadowBlur = 2;
+        drawingContext.shadowColor = 'rgba(255, 255, 255, 0.5)';
         text(`${config.pairs}쌍  •  ${config.timeLimit}초  •  ${config.pointsPerMatch}점`,
-             x + w / 2, y + h / 2 + 20);
+             x + w / 2, y + h / 2 + 24);
 
         pop();
     }
@@ -636,7 +673,7 @@ class UIRenderer {
     // ========== 공통 UI 요소 ==========
 
     /**
-     * 부드러운 버튼 그리기
+     * 3D 입체 버튼 그리기 (Toy-like design)
      *
      * @private
      */
@@ -645,26 +682,62 @@ class UIRenderer {
 
         push();
 
-        // 호버 시 떠오르기
-        const hoverOffset = isHovered ? -6 : 0;
-        const hoverScale = isHovered ? 1.03 : 1;
+        // Spring bounce 시뮬레이션
+        const bounceOffset = isHovered ? sin(frameCount * 0.3) * 2 : 0;
+        const hoverOffset = isHovered ? -8 : 0;
+        const hoverScale = isHovered ? 1.05 : 1;
+        const pressDepth = isHovered ? 2 : 6; // 눌린 느낌
 
-        translate(x + w / 2, y + h / 2 + hoverOffset);
+        translate(x + w / 2, y + h / 2 + hoverOffset + bounceOffset);
         scale(hoverScale);
         translate(-(x + w / 2), -(y + h / 2));
 
-        // 버튼 배경 (파스텔 블루)
-        fill(this.style.pastelBlue);
+        // Layer 1: 깊은 그림자 (3D depth)
+        fill(0, 0, 0, 30);
         noStroke();
-        drawingContext.shadowBlur = isHovered ? 12 : 8;
-        drawingContext.shadowColor = 'rgba(0, 0, 0, 0.15)';
-        drawingContext.shadowOffsetY = isHovered ? 8 : 6;
-        rect(x, y, w, h, this.style.buttonRadius);
+        rect(x + 4, y + pressDepth + 8, w, h, this.style.buttonRadius);
 
-        // 흰색 테두리
+        // Layer 2: 버튼 베이스 (더 어두운 색상)
+        const baseColor = color(this.style.pastelBlue);
+        fill(
+            red(baseColor) * 0.7,
+            green(baseColor) * 0.7,
+            blue(baseColor) * 0.7
+        );
+        rect(x, y + pressDepth, w, h, this.style.buttonRadius);
+
+        // Layer 3: 메인 버튼 (그라데이션 효과)
+        const gradient = drawingContext.createLinearGradient(
+            x, y, x, y + h
+        );
+        gradient.addColorStop(0, this.style.pastelBlue);
+        gradient.addColorStop(1, '#A0C4FF');
+        drawingContext.fillStyle = gradient;
+        drawingContext.shadowBlur = isHovered ? 16 : 10;
+        drawingContext.shadowColor = 'rgba(180, 212, 255, 0.6)';
+        drawingContext.shadowOffsetY = 0;
+
+        drawingContext.beginPath();
+        drawingContext.roundRect(x, y, w, h, this.style.buttonRadius);
+        drawingContext.fill();
+
+        // Layer 4: 하이라이트 (빛 반사)
+        const highlightGradient = drawingContext.createLinearGradient(
+            x, y, x, y + h / 2
+        );
+        highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
+        highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        drawingContext.fillStyle = highlightGradient;
+        drawingContext.shadowBlur = 0;
+
+        drawingContext.beginPath();
+        drawingContext.roundRect(x + 10, y + 5, w - 20, h / 3, this.style.buttonRadius);
+        drawingContext.fill();
+
+        // Layer 5: 흰색 외곽선 (스티커 느낌)
         noFill();
-        stroke(this.style.surfaceWhite);
-        strokeWeight(5);
+        stroke(255);
+        strokeWeight(6);
         drawingContext.shadowBlur = 0;
         rect(x, y, w, h, this.style.buttonRadius);
 
@@ -672,10 +745,13 @@ class UIRenderer {
         noStroke();
         fill(this.style.textPrimary);
         textAlign(CENTER, CENTER);
-        textSize(this.style.bodySize);
+        textSize(this.style.bodySize + 2);
         textStyle(BOLD);
-        drawingContext.shadowBlur = 2;
-        drawingContext.shadowColor = 'rgba(0, 0, 0, 0.1)';
+
+        // 텍스트 그림자
+        drawingContext.shadowBlur = 3;
+        drawingContext.shadowColor = 'rgba(255, 255, 255, 0.8)';
+        drawingContext.shadowOffsetX = 1;
         drawingContext.shadowOffsetY = 1;
         text(label, x + w / 2, y + h / 2);
 
@@ -683,29 +759,96 @@ class UIRenderer {
     }
 
     /**
-     * 부드러운 장식 요소 그리기
+     * 유기적 장식 요소 그리기 (별, 하트, 구름)
      *
      * @private
      */
     _drawSoftDecorations() {
         push();
 
-        // 떠다니는 작은 원들 (파스텔)
+        // 떠다니는 다양한 shape들
         const decorations = [
-            { x: width * 0.1, y: height * 0.2, size: 40, color: this.style.pastelPink },
-            { x: width * 0.9, y: height * 0.3, size: 50, color: this.style.pastelMint },
-            { x: width * 0.15, y: height * 0.8, size: 35, color: this.style.pastelYellow },
-            { x: width * 0.85, y: height * 0.7, size: 45, color: this.style.pastelLavender }
+            { x: width * 0.1, y: height * 0.2, type: 'heart', size: 40, color: this.style.pastelPink, rotation: 0.02 },
+            { x: width * 0.9, y: height * 0.3, type: 'star', size: 50, color: this.style.pastelYellow, rotation: 0.03 },
+            { x: width * 0.15, y: height * 0.8, type: 'cloud', size: 60, color: this.style.pastelMint, rotation: 0.015 },
+            { x: width * 0.85, y: height * 0.7, type: 'star', size: 45, color: this.style.pastelLavender, rotation: -0.025 },
+            { x: width * 0.5, y: height * 0.15, type: 'heart', size: 35, color: this.style.pastelPeach, rotation: 0.018 }
         ];
 
         decorations.forEach((deco, index) => {
-            const floatY = sin((frameCount + index * 30) * 0.03) * 10;
-            fill(deco.color);
+            const floatY = sin((frameCount + index * 30) * 0.03) * 15;
+            const floatX = cos((frameCount + index * 45) * 0.02) * 8;
+            const rotation = (frameCount + index * 60) * deco.rotation;
+            const pulse = 1 + sin((frameCount + index * 20) * 0.05) * 0.1;
+
+            push();
+            translate(deco.x + floatX, deco.y + floatY);
+            rotate(rotation);
+            scale(pulse);
+
+            // 3D 그림자
+            fill(0, 0, 0, 20);
             noStroke();
-            drawingContext.shadowBlur = 8;
-            drawingContext.shadowColor = 'rgba(0, 0, 0, 0.08)';
-            circle(deco.x, deco.y + floatY, deco.size);
+            this._drawShape(deco.type, 3, 3, deco.size);
+
+            // 메인 shape
+            const shapeColor = color(deco.color);
+            const gradient = drawingContext.createRadialGradient(0, 0, 0, 0, 0, deco.size / 2);
+            gradient.addColorStop(0, deco.color);
+            gradient.addColorStop(1, `rgba(${red(shapeColor)}, ${green(shapeColor)}, ${blue(shapeColor)}, 0.7)`);
+
+            drawingContext.fillStyle = gradient;
+            drawingContext.shadowBlur = 12;
+            drawingContext.shadowColor = deco.color;
+            this._drawShape(deco.type, 0, 0, deco.size);
+
+            // 하이라이트
+            fill(255, 255, 255, 150);
+            drawingContext.shadowBlur = 0;
+            this._drawShape(deco.type, -deco.size * 0.15, -deco.size * 0.15, deco.size * 0.4);
+
+            pop();
         });
+
+        pop();
+    }
+
+    /**
+     * Shape 그리기 헬퍼
+     *
+     * @private
+     */
+    _drawShape(type, offsetX, offsetY, size) {
+        push();
+        translate(offsetX, offsetY);
+
+        if (type === 'heart') {
+            // 하트 그리기
+            beginShape();
+            for (let a = 0; a < TWO_PI; a += 0.1) {
+                const r = size * 0.4 * (1 - sin(a));
+                const x = r * cos(a);
+                const y = r * sin(a) - size * 0.2;
+                vertex(x, y);
+            }
+            endShape(CLOSE);
+        } else if (type === 'star') {
+            // 별 그리기 (5각별)
+            beginShape();
+            for (let i = 0; i < 10; i++) {
+                const angle = (TWO_PI / 10) * i - HALF_PI;
+                const r = (i % 2 === 0) ? size * 0.5 : size * 0.2;
+                const x = cos(angle) * r;
+                const y = sin(angle) * r;
+                vertex(x, y);
+            }
+            endShape(CLOSE);
+        } else if (type === 'cloud') {
+            // 구름 그리기 (3개의 원)
+            ellipse(-size * 0.25, 0, size * 0.6, size * 0.6);
+            ellipse(size * 0.25, 0, size * 0.6, size * 0.6);
+            ellipse(0, -size * 0.15, size * 0.7, size * 0.7);
+        }
 
         pop();
     }
