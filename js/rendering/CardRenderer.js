@@ -22,29 +22,31 @@ class CardRenderer {
         // 호버 애니메이션 상태
         this.hoverAnimations = new Map(); // card -> hover progress
 
-        // 스타일 설정
+        // 네온 아케이드 스타일
         this.style = {
+            // 네온 색상
+            neonPink: '#FF10F0',
+            neonCyan: '#00F0FF',
+            neonPurple: '#B026FF',
+            neonGreen: '#39FF14',
+
+            // 다크 베이스
+            darkCard: '#16213e',
+            darkBack: '#0f3460',
+
             // 카드 뒷면
-            backColor: config.backColor || '#424242',
-            backPattern: 'grid', // 'solid', 'grid', 'diagonal'
-
-            // 카드 앞면
-            frontColor: '#FFFFFF',
-            borderColor: '#E0E0E0',
-            borderWidth: 2,
-
-            // 텍스트
-            textColor: '#212121',
-            textSize: 32,
+            backPattern: 'circuit', // 'circuit', 'grid', 'diagonal'
 
             // 매칭 완료
-            matchedOpacity: 0.6,
-            matchedBorderColor: '#4CAF50',
+            matchedOpacity: 0.5,
 
             // 호버 효과
-            hoverScale: 1.08,
-            hoverElevation: 8,
-            hoverSpeed: 0.15
+            hoverScale: 1.12,
+            hoverElevation: 12,
+            hoverSpeed: 0.15,
+
+            // 글로우 강도
+            glowStrength: 15
         };
 
         // 카드 이모지 (임시 이미지)
@@ -139,7 +141,7 @@ class CardRenderer {
     // ========== 카드 앞면/뒷면 ==========
 
     /**
-     * 카드 앞면 그리기
+     * 카드 앞면 그리기 (네온 스타일)
      *
      * @private
      * @param {Card} card
@@ -147,24 +149,32 @@ class CardRenderer {
     _drawFrontFace(card) {
         rectMode(CENTER);
 
-        // 카드 배경색 (ID별로 다른 색상)
+        push();
+
+        // 카드 배경색 (다크)
+        fill(this.style.darkCard);
+        noStroke();
+        rect(0, 0,
+             this.config.width,
+             this.config.height,
+             this.config.cornerRadius);
+
+        // 네온 테두리
         const cardColor = this.cardColors[card.id % this.cardColors.length];
+        noFill();
+        strokeWeight(3);
+        stroke(cardColor);
 
         if (card.isMatched) {
-            // 매칭 완료 시 투명도
-            const c = color(cardColor);
-            fill(red(c), green(c), blue(c), 255 * this.style.matchedOpacity);
+            // 매칭 완료 시 네온 그린 글로우
+            drawingContext.shadowBlur = 25;
+            drawingContext.shadowColor = this.style.neonGreen;
+            stroke(this.style.neonGreen);
         } else {
-            fill(cardColor);
+            drawingContext.shadowBlur = this.style.glowStrength;
+            drawingContext.shadowColor = cardColor;
         }
 
-        // 테두리
-        strokeWeight(this.style.borderWidth);
-        stroke(card.isMatched ?
-               this.style.matchedBorderColor :
-               this.style.borderColor);
-
-        // 카드 사각형
         rect(0, 0,
              this.config.width,
              this.config.height,
@@ -174,17 +184,28 @@ class CardRenderer {
         const emoji = this.cardEmojis[card.id % this.cardEmojis.length];
         noStroke();
         textAlign(CENTER, CENTER);
-        textSize(this.config.width * 0.5); // 카드 크기의 50%
+        textSize(this.config.width * 0.5);
+
+        // 이모지 주변 글로우
+        drawingContext.shadowBlur = 10;
+        drawingContext.shadowColor = cardColor;
         text(emoji, 0, 0);
 
-        // 작은 ID 표시 (하단)
-        fill(255, 255, 255, 180);
-        textSize(12);
-        text(`#${card.id}`, 0, this.config.height / 2 - 15);
+        // 매칭 완료 시 오버레이
+        if (card.isMatched) {
+            fill(57, 255, 20, 30); // 네온 그린 오버레이
+            noStroke();
+            rect(0, 0,
+                 this.config.width - 6,
+                 this.config.height - 6,
+                 this.config.cornerRadius);
+        }
+
+        pop();
     }
 
     /**
-     * 카드 뒷면 그리기
+     * 카드 뒷면 그리기 (네온 스타일)
      *
      * @private
      * @param {Card} card
@@ -192,59 +213,93 @@ class CardRenderer {
     _drawBackFace(card) {
         rectMode(CENTER);
 
-        // 배경
-        fill(this.style.backColor);
-        strokeWeight(this.style.borderWidth);
-        stroke(this.style.borderColor);
+        push();
 
+        // 다크 배경
+        fill(this.style.darkBack);
+        noStroke();
         rect(0, 0,
              this.config.width,
              this.config.height,
              this.config.cornerRadius);
 
-        // 패턴 그리기
+        // 네온 시안 테두리
+        noFill();
+        strokeWeight(2);
+        stroke(this.style.neonCyan);
+        drawingContext.shadowBlur = 12;
+        drawingContext.shadowColor = this.style.neonCyan;
+        rect(0, 0,
+             this.config.width,
+             this.config.height,
+             this.config.cornerRadius);
+
+        // 회로 기판 패턴
         this._drawBackPattern();
+
+        pop();
     }
 
     /**
-     * 뒷면 패턴 그리기
+     * 뒷면 패턴 그리기 (회로 기판 네온 스타일)
      *
      * @private
      */
     _drawBackPattern() {
-        const pattern = this.style.backPattern;
-
-        noFill();
-        stroke(255, 255, 255, 100);
-        strokeWeight(1);
-
         const w = this.config.width;
         const h = this.config.height;
-        const margin = 10;
+        const margin = 15;
 
-        switch (pattern) {
-            case 'grid':
-                // 그리드 패턴
-                for (let x = -w/2 + margin; x < w/2 - margin; x += 20) {
-                    line(x, -h/2 + margin, x, h/2 - margin);
-                }
-                for (let y = -h/2 + margin; y < h/2 - margin; y += 20) {
-                    line(-w/2 + margin, y, w/2 - margin, y);
-                }
-                break;
+        push();
 
-            case 'diagonal':
-                // 대각선 패턴
-                for (let i = -w; i < w + h; i += 20) {
-                    line(i, -h/2, i - h, h/2);
-                }
-                break;
+        // 회로 기판 패턴
+        noFill();
+        stroke(this.style.neonCyan);
+        strokeWeight(1.5);
+        drawingContext.shadowBlur = 5;
+        drawingContext.shadowColor = this.style.neonCyan;
 
-            case 'solid':
-            default:
-                // 단색
-                break;
-        }
+        // 중앙 십자가
+        line(0, -h/2 + margin, 0, h/2 - margin);
+        line(-w/2 + margin, 0, w/2 - margin, 0);
+
+        // 회로 노드 (작은 원)
+        const nodeSize = 4;
+        const nodes = [
+            [-w/4, -h/4],
+            [w/4, -h/4],
+            [-w/4, h/4],
+            [w/4, h/4]
+        ];
+
+        nodes.forEach(([x, y]) => {
+            circle(x, y, nodeSize);
+        });
+
+        // 연결선
+        strokeWeight(1);
+        line(-w/4, -h/4, w/4, -h/4);
+        line(-w/4, h/4, w/4, h/4);
+        line(-w/4, -h/4, -w/4, h/4);
+        line(w/4, -h/4, w/4, h/4);
+
+        // 코너 장식
+        strokeWeight(2);
+        const cornerSize = 12;
+        // 좌상단
+        line(-w/2 + margin, -h/2 + margin, -w/2 + margin + cornerSize, -h/2 + margin);
+        line(-w/2 + margin, -h/2 + margin, -w/2 + margin, -h/2 + margin + cornerSize);
+        // 우상단
+        line(w/2 - margin, -h/2 + margin, w/2 - margin - cornerSize, -h/2 + margin);
+        line(w/2 - margin, -h/2 + margin, w/2 - margin, -h/2 + margin + cornerSize);
+        // 좌하단
+        line(-w/2 + margin, h/2 - margin, -w/2 + margin + cornerSize, h/2 - margin);
+        line(-w/2 + margin, h/2 - margin, -w/2 + margin, h/2 - margin - cornerSize);
+        // 우하단
+        line(w/2 - margin, h/2 - margin, w/2 - margin - cornerSize, h/2 - margin);
+        line(w/2 - margin, h/2 - margin, w/2 - margin, h/2 - margin - cornerSize);
+
+        pop();
     }
 
     // ========== 애니메이션 ==========
@@ -370,9 +425,13 @@ class CardRenderer {
                 break;
 
             case 'pulse':
-                // 반짝임 효과 (성공 시)
-                const pulseScale = 1 + Math.sin(animState.progress * Math.PI * 2) * 0.15;
+                // 네온 펄스 효과 (성공 시)
+                const pulseScale = 1 + Math.sin(animState.progress * Math.PI * 3) * 0.2;
                 scale(pulseScale);
+
+                // 네온 글로우 증폭
+                drawingContext.shadowBlur = 30 + Math.sin(animState.progress * Math.PI * 2) * 20;
+                drawingContext.shadowColor = this.style.neonGreen;
 
                 // 밝기 변화
                 const brightness = 1 + Math.sin(animState.progress * Math.PI * 2) * 0.3;
@@ -383,6 +442,10 @@ class CardRenderer {
                 // 흔들림 효과 (실패 시)
                 const shakeAmount = 10 * Math.sin(animState.progress * Math.PI * 4);
                 translate(shakeAmount, 0);
+
+                // 네온 핑크 글로우 (경고)
+                drawingContext.shadowBlur = 25;
+                drawingContext.shadowColor = this.style.neonPink;
 
                 // 붉은 색조
                 tint(255, 180, 180);

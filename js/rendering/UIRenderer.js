@@ -25,24 +25,35 @@ class UIRenderer {
         this.helperMessage = null;
         this.helperMessageEndTime = 0;
 
-        // 스타일
+        // 네온 아케이드 스타일
         this.style = {
             // 폰트
-            titleSize: 64,
-            headingSize: 48,
-            bodySize: 24,
+            titleSize: 72,
+            headingSize: 52,
+            bodySize: 26,
             smallSize: 18,
 
-            // 색상
-            primaryColor: '#667eea',
-            accentColor: '#764ba2',
-            textDark: '#212121',
+            // 네온 색상
+            neonPink: '#FF10F0',
+            neonCyan: '#00F0FF',
+            neonPurple: '#B026FF',
+            neonGreen: '#39FF14',
+            neonOrange: '#FF6B35',
+
+            // 다크 베이스
+            darkBg: '#0a0a0f',
+            darkSurface: '#1a1a2e',
+            darkCard: '#16213e',
+
             textLight: '#FFFFFF',
-            bgLight: '#F5F5F5',
+            textDim: '#AAAAAA',
 
             // 버튼
             buttonPadding: 20,
-            buttonRadius: 10
+            buttonRadius: 15,
+
+            // 효과
+            glowIntensity: 20
         };
 
         // 최고 기록 관리자
@@ -52,31 +63,62 @@ class UIRenderer {
     // ========== 시작 화면 ==========
 
     /**
-     * 시작 화면 렌더링
+     * 시작 화면 렌더링 (네온 아케이드 스타일)
      */
     drawStartScreen() {
-        // 그라데이션 배경
-        this._drawGradientBackground();
+        // 다크 배경
+        background(this.style.darkBg);
 
-        // 제목
-        fill(this.style.textLight);
+        // 네온 그리드 배경 효과
+        this._drawNeonGrid();
+
+        push();
+
+        // 제목 - 네온 글로우 효과
         textAlign(CENTER, CENTER);
         textSize(this.style.titleSize);
         textStyle(BOLD);
-        text('메모리 카드 게임', width / 2, height / 3);
 
-        // 설명
+        // 네온 핑크 글로우
+        drawingContext.shadowBlur = 30;
+        drawingContext.shadowColor = this.style.neonPink;
+        fill(this.style.neonPink);
+        text('NEON MEMORY', width / 2, height / 3 - 20);
+
+        // 서브타이틀 - 사이안 글로우
+        drawingContext.shadowColor = this.style.neonCyan;
+        drawingContext.shadowBlur = 20;
         textSize(this.style.bodySize);
         textStyle(NORMAL);
-        text('같은 그림의 카드 쌍을 찾으세요!', width / 2, height / 2);
+        fill(this.style.neonCyan);
+        text('◢ ARCADE EDITION ◣', width / 2, height / 3 + 40);
+
+        // 설명 텍스트
+        drawingContext.shadowBlur = 10;
+        textSize(22);
+        fill(this.style.textDim);
+        text('같은 카드 쌍을 찾아 매칭하세요', width / 2, height / 2 + 20);
+
+        pop();
 
         // 시작 버튼
-        const btnX = width / 2 - 100;
+        const btnX = width / 2 - 120;
         const btnY = height * 2 / 3;
-        const btnW = 200;
-        const btnH = 60;
+        const btnW = 240;
+        const btnH = 70;
 
-        this._drawButton(btnX, btnY, btnW, btnH, '시작하기', 'start');
+        this._drawNeonButton(btnX, btnY, btnW, btnH, '▶ START', 'start');
+
+        // 깜빡이는 "PRESS START" 텍스트
+        if (frameCount % 60 < 40) {
+            push();
+            textSize(18);
+            fill(this.style.neonGreen);
+            drawingContext.shadowColor = this.style.neonGreen;
+            drawingContext.shadowBlur = 15;
+            text('PRESS START', width / 2, height * 0.85);
+            pop();
+        }
     }
 
     /**
@@ -87,84 +129,111 @@ class UIRenderer {
      * @returns {string|null} 버튼 ID
      */
     handleStartClick(mx, my) {
-        return this._checkButton(width / 2 - 100, height * 2 / 3, 200, 60, 'start');
+        return this._checkButton(width / 2 - 120, height * 2 / 3, 240, 70, 'start');
     }
 
     // ========== 난이도 선택 화면 ==========
 
     /**
-     * 난이도 선택 화면 렌더링
+     * 난이도 선택 화면 렌더링 (네온 스타일)
      */
     drawDifficultyScreen() {
-        background(this.style.bgLight);
+        // 다크 배경
+        background(this.style.darkBg);
+
+        // 네온 그리드
+        this._drawNeonGrid();
+
+        push();
 
         // 제목
-        fill(this.style.textDark);
         textAlign(CENTER, CENTER);
         textSize(this.style.headingSize);
         textStyle(BOLD);
-        text('난이도 선택', width / 2, 100);
+        drawingContext.shadowBlur = 25;
+        drawingContext.shadowColor = this.style.neonPurple;
+        fill(this.style.neonPurple);
+        text('◈ SELECT DIFFICULTY ◈', width / 2, 100);
+
+        pop();
 
         // 난이도 버튼들
         const difficulties = [
-            { key: 'EASY', y: 220 },
-            { key: 'MEDIUM', y: 330 },
-            { key: 'HARD', y: 440 },
-            { key: 'HELL', y: 550 }
+            { key: 'EASY', y: 200, color: this.style.neonGreen },
+            { key: 'MEDIUM', y: 320, color: this.style.neonCyan },
+            { key: 'HARD', y: 440, color: this.style.neonOrange },
+            { key: 'HELL', y: 560, color: this.style.neonPink }
         ];
 
-        difficulties.forEach(({ key, y }) => {
+        difficulties.forEach(({ key, y, color }) => {
             const config = DIFFICULTY[key];
-            this._drawDifficultyButton(
-                width / 2 - 200,
+            this._drawNeonDifficultyButton(
+                width / 2 - 250,
                 y,
-                400,
-                90,
+                500,
+                100,
                 config,
-                key
+                key,
+                color
             );
         });
     }
 
     /**
-     * 난이도 버튼 그리기
+     * 네온 난이도 버튼 그리기
      *
      * @private
-     * @param {number} x
-     * @param {number} y
-     * @param {number} w
-     * @param {number} h
-     * @param {Object} config - 난이도 설정
-     * @param {string} id - 버튼 ID
      */
-    _drawDifficultyButton(x, y, w, h, config, id) {
+    _drawNeonDifficultyButton(x, y, w, h, config, id, neonColor) {
         const isHovered = this.hoveredButton === id;
 
-        // 버튼 배경
-        fill(config.color.card);
-        if (isHovered) {
-            stroke(config.color.text);
-            strokeWeight(4);
-        } else {
-            strokeWeight(2);
-            stroke(200);
-        }
+        push();
 
+        // 호버 시 펄스 효과
+        const pulseScale = isHovered ? 1 + sin(frameCount * 0.15) * 0.02 : 1;
+        translate(x + w / 2, y + h / 2);
+        scale(pulseScale);
+        translate(-(x + w / 2), -(y + h / 2));
+
+        // 버튼 배경 (다크)
+        fill(this.style.darkCard);
+        noStroke();
+        rect(x, y, w, h, this.style.buttonRadius);
+
+        // 네온 테두리
+        noFill();
+        strokeWeight(isHovered ? 4 : 2);
+        stroke(neonColor);
+        drawingContext.shadowBlur = isHovered ? 25 : 15;
+        drawingContext.shadowColor = neonColor;
         rect(x, y, w, h, this.style.buttonRadius);
 
         // 난이도 이름
+        drawingContext.shadowBlur = 20;
         noStroke();
-        fill(config.color.text);
+        fill(neonColor);
         textAlign(CENTER, CENTER);
-        textSize(36);
+        textSize(42);
         textStyle(BOLD);
-        text(config.name, x + w / 2, y + h / 2 - 15);
+        text(config.name.toUpperCase(), x + w / 2, y + h / 2 - 18);
 
         // 상세 정보
+        drawingContext.shadowBlur = 10;
         textSize(18);
         textStyle(NORMAL);
-        text(`${config.pairs}쌍 | ${config.timeLimit}초 | ${config.pointsPerMatch}점`,
-             x + w / 2, y + h / 2 + 20);
+        fill(this.style.textDim);
+        text(`${config.pairs}쌍 ◆ ${config.timeLimit}초 ◆ ${config.pointsPerMatch}점`,
+             x + w / 2, y + h / 2 + 22);
+
+        // 호버 시 추가 글로우
+        if (isHovered) {
+            noFill();
+            strokeWeight(1);
+            drawingContext.shadowBlur = 35;
+            rect(x + 5, y + 5, w - 10, h - 10, this.style.buttonRadius);
+        }
+
+        pop();
     }
 
     /**
@@ -176,14 +245,14 @@ class UIRenderer {
      */
     handleDifficultyClick(mx, my) {
         const difficulties = [
-            { key: 'EASY', y: 220 },
-            { key: 'MEDIUM', y: 330 },
+            { key: 'EASY', y: 200 },
+            { key: 'MEDIUM', y: 320 },
             { key: 'HARD', y: 440 },
-            { key: 'HELL', y: 550 }
+            { key: 'HELL', y: 560 }
         ];
 
         for (const { key, y } of difficulties) {
-            if (this._isInRect(mx, my, width / 2 - 200, y, 400, 90)) {
+            if (this._isInRect(mx, my, width / 2 - 250, y, 500, 100)) {
                 return key;
             }
         }
@@ -228,57 +297,87 @@ class UIRenderer {
     }
 
     /**
-     * 상단 UI 바
+     * 상단 UI 바 (네온 스타일)
      *
      * @private
      * @param {GameState} gameState
      */
     _drawTopBar(gameState) {
-        // 반투명 배경
-        fill(255, 255, 255, 240);
-        noStroke();
-        rect(0, 0, width, 150, 0, 0, 20, 20);
+        push();
 
-        fill(this.style.textDark);
+        // 반투명 다크 배경
+        fill(10, 10, 15, 230);
+        noStroke();
+        rect(0, 0, width, 140, 0, 0, 20, 20);
+
+        // 네온 하단 라인
+        strokeWeight(2);
+        stroke(this.style.neonCyan);
+        drawingContext.shadowBlur = 10;
+        drawingContext.shadowColor = this.style.neonCyan;
+        line(20, 138, width - 20, 138);
+
         textAlign(LEFT, TOP);
-        textSize(28);
+        textSize(24);
         textStyle(BOLD);
 
         const padding = 30;
-        const lineHeight = 45;
+        const lineHeight = 40;
 
         // 타이머
         const minutes = floor(gameState.timeRemaining / 60);
         const seconds = gameState.timeRemaining % 60;
         const timeStr = `${nf(minutes, 2)}:${nf(seconds, 2)}`;
 
-        // 시간 색상 (10초 이하면 빨강)
+        drawingContext.shadowBlur = 15;
+        // 시간 색상 (10초 이하면 네온 핑크 + 깜빡임)
         if (gameState.timeRemaining <= 10) {
-            fill(244, 67, 54); // Red
+            if (frameCount % 30 < 15) {
+                drawingContext.shadowColor = this.style.neonPink;
+                fill(this.style.neonPink);
+            } else {
+                drawingContext.shadowColor = this.style.neonOrange;
+                fill(this.style.neonOrange);
+            }
+        } else {
+            drawingContext.shadowColor = this.style.neonCyan;
+            fill(this.style.neonCyan);
         }
-        text(`⏱️ ${timeStr}`, padding, padding);
+        text(`⏱ ${timeStr}`, padding, padding);
 
-        // 점수
-        fill(this.style.textDark);
-        text(`🎯 점수: ${gameState.score}`, padding, padding + lineHeight);
+        // 점수 (네온 퍼플)
+        drawingContext.shadowColor = this.style.neonPurple;
+        fill(this.style.neonPurple);
+        text(`◆ ${gameState.score}`, padding, padding + lineHeight);
 
-        // 남은 쌍
-        text(`📦 남은 쌍: ${gameState.getRemainingPairs()}`,
+        // 남은 쌍 (네온 그린)
+        drawingContext.shadowColor = this.style.neonGreen;
+        fill(this.style.neonGreen);
+        text(`▣ ${gameState.getRemainingPairs()} PAIRS`,
              width / 2 - 100, padding);
 
         // 시도 횟수
-        text(`🔄 시도: ${gameState.attempts}`,
+        fill(this.style.textDim);
+        drawingContext.shadowBlur = 5;
+        text(`↻ ${gameState.attempts}`,
              width / 2 - 100, padding + lineHeight);
 
-        // 콤보
+        // 콤보 (오른쪽 상단, 큰 크기)
         if (gameState.combo > 1) {
+            textAlign(RIGHT, TOP);
+            drawingContext.shadowBlur = 25;
+            drawingContext.shadowColor = this.style.neonOrange;
+            fill(this.style.neonOrange);
+            textSize(36);
+            const comboScale = 1 + sin(frameCount * 0.2) * 0.1;
             push();
-            fill(255, 152, 0); // Orange
-            textSize(32);
-            text(`🔥 콤보 x${gameState.combo}`,
-                 width - 200, padding + lineHeight / 2);
+            translate(width - padding - 100, padding + lineHeight / 2);
+            scale(comboScale);
+            text(`× ${gameState.combo} COMBO`, 0, 0);
             pop();
         }
+
+        pop();
     }
 
     // ========== 결과 화면 ==========
@@ -360,7 +459,7 @@ class UIRenderer {
         }
 
         // 다시하기 버튼
-        this._drawButton(centerX - 100, 680, 200, 60, '다시하기', 'retry');
+        this._drawNeonButton(centerX - 120, 680, 240, 70, '◀ RETRY', 'retry');
     }
 
     /**
@@ -417,7 +516,7 @@ class UIRenderer {
      * @returns {string|null}
      */
     handleResultClick(mx, my) {
-        return this._checkButton(width / 2 - 100, 600, 200, 60, 'retry');
+        return this._checkButton(width / 2 - 120, 680, 240, 70, 'retry');
     }
 
     // ========== 메시지 시스템 ==========
@@ -554,56 +653,80 @@ class UIRenderer {
     // ========== 공통 UI 요소 ==========
 
     /**
-     * 버튼 그리기
+     * 네온 버튼 그리기
      *
      * @private
-     * @param {number} x
-     * @param {number} y
-     * @param {number} w
-     * @param {number} h
-     * @param {string} label
-     * @param {string} id
      */
-    _drawButton(x, y, w, h, label, id) {
+    _drawNeonButton(x, y, w, h, label, id) {
         const isHovered = this.hoveredButton === id;
 
-        // 그림자
-        if (isHovered) {
-            fill(0, 0, 0, 50);
-            noStroke();
-            rect(x + 2, y + 4, w, h, this.style.buttonRadius);
-        }
+        push();
+
+        // 호버 시 펄스
+        const pulseScale = isHovered ? 1 + sin(frameCount * 0.15) * 0.03 : 1;
+        translate(x + w / 2, y + h / 2);
+        scale(pulseScale);
+        translate(-(x + w / 2), -(y + h / 2));
 
         // 버튼 배경
-        fill(isHovered ? this.style.accentColor : this.style.primaryColor);
+        fill(this.style.darkCard);
         noStroke();
         rect(x, y, w, h, this.style.buttonRadius);
 
+        // 네온 테두리
+        noFill();
+        strokeWeight(isHovered ? 4 : 3);
+        stroke(this.style.neonCyan);
+        drawingContext.shadowBlur = isHovered ? 30 : 15;
+        drawingContext.shadowColor = this.style.neonCyan;
+        rect(x, y, w, h, this.style.buttonRadius);
+
         // 텍스트
-        fill(this.style.textLight);
+        noStroke();
+        fill(this.style.neonCyan);
         textAlign(CENTER, CENTER);
-        textSize(this.style.bodySize);
+        textSize(this.style.bodySize + 2);
         textStyle(BOLD);
+        drawingContext.shadowBlur = 20;
         text(label, x + w / 2, y + h / 2);
+
+        // 호버 시 내부 글로우
+        if (isHovered) {
+            fill(0, 240, 255, 30);
+            noStroke();
+            rect(x + 3, y + 3, w - 6, h - 6, this.style.buttonRadius - 3);
+        }
+
+        pop();
     }
 
     /**
-     * 그라데이션 배경
+     * 네온 그리드 배경 효과
      *
      * @private
      */
-    _drawGradientBackground() {
-        // 간단한 그라데이션 효과
-        for (let y = 0; y < height; y++) {
-            const inter = map(y, 0, height, 0, 1);
-            const c = lerpColor(
-                color(this.style.primaryColor),
-                color(this.style.accentColor),
-                inter
-            );
-            stroke(c);
+    _drawNeonGrid() {
+        push();
+
+        // 그리드 라인
+        stroke(0, 240, 255, 30);
+        strokeWeight(1);
+
+        const gridSize = 50;
+        const offsetX = (frameCount * 0.5) % gridSize;
+        const offsetY = (frameCount * 0.5) % gridSize;
+
+        // 수직 라인
+        for (let x = -offsetX; x < width + gridSize; x += gridSize) {
+            line(x, 0, x, height);
+        }
+
+        // 수평 라인
+        for (let y = -offsetY; y < height + gridSize; y += gridSize) {
             line(0, y, width, y);
         }
+
+        pop();
     }
 
     // ========== 유틸리티 ==========
