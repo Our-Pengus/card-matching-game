@@ -14,11 +14,13 @@ class Card {
      * @param {number} x - 화면 x 좌표
      * @param {number} y - 화면 y 좌표
      * @param {string} imagePath - 카드 이미지 경로
+     * @param {string} [type=CARD_TYPE.NORMAL] - 카드 타입 (NORMAL, ANSWER_PAIR, BOMB)
      */
-    constructor(id, x, y, imagePath) {
+    constructor(id, x, y, imagePath, type = CARD_TYPE.NORMAL) {
         // 불변 속성
         this._id = id;
         this._imagePath = imagePath;
+        this._type = type || CARD_TYPE.NORMAL;
 
         // 가변 속성 (private)
         this._x = x;
@@ -45,6 +47,18 @@ class Card {
 
     /** @returns {string} */
     get imagePath() { return this._imagePath; }
+
+    /** @returns {string} */
+    get type() { return this._type; }
+
+    /** @returns {boolean} */
+    get isNormal() { return this._type === CARD_TYPE.NORMAL; }
+
+    /** @returns {boolean} */
+    get isAnswerPair() { return this._type === CARD_TYPE.ANSWER_PAIR; }
+
+    /** @returns {boolean} */
+    get isBomb() { return this._type === CARD_TYPE.BOMB; }
 
     /** @returns {boolean} */
     get isFlipped() { return this._isFlipped; }
@@ -164,6 +178,7 @@ class Card {
     toJSON() {
         return {
             id: this._id,
+            type: this._type,
             x: this._x,
             y: this._y,
             imagePath: this._imagePath,
@@ -180,7 +195,7 @@ class Card {
     toString() {
         const state = this._isMatched ? 'MATCHED' :
                      this._isFlipped ? 'FLIPPED' : 'FACE_DOWN';
-        return `Card(id=${this._id}, state=${state}, pos=(${this._x},${this._y}))`;
+        return `Card(id=${this._id}, type=${this._type}, state=${state}, pos=(${this._x},${this._y}))`;
     }
 }
 
