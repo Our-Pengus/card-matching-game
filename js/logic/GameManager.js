@@ -81,8 +81,8 @@ class GameManager {
 
         // 모든 카드 앞면 보이기
         this.state.cards.forEach(card => {
-            if (!card.isFaceUp) {
-                card.flip();
+            if (!card.isFlipped) {
+                card.setFlipped(true);
             }
         });
 
@@ -115,8 +115,8 @@ class GameManager {
 
         // 모든 카드 뒤집기
         this.state.cards.forEach(card => {
-            if (card.isFaceUp && !card.isMatched) {
-                card.flip();
+            if (card.isFlipped && !card.isMatched) {
+                card.setFlipped(false);
             }
         });
 
