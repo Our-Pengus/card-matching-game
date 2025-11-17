@@ -62,47 +62,50 @@ const DIFFICULTY = {
             text: '#C62828'
         }
     },
-    DISASTER: {
-        name: '재앙',
-        pairs: 12,          // 12쌍 = 36장 (3장 매칭)
-        timeLimit: 75,      // 1분 15초
-        gridCols: 6,
-        gridRows: 6,
-        pointsPerMatch: 25,
-        timePenalty: 18,
-        matchingRule: 3,    // 3장 매칭
-        previewTime: 0,     // 미리 보기 없음
-        hearts: 25,         // 하트 25개
-        specialCards: {
-            bombs: 2        // 폭탄 카드 2장
-        },
-        color: {
-            bg: '#E1BEE7',
-            card: '#9C27B0',
-            text: '#4A148C'
-        }
-    },
-    HELL: {
-        name: '지옥',
-        pairs: 22,          // 22쌍 = 44장 (폭탄 4장 포함하여 총 48장)
-        timeLimit: 60,      // 1분
-        gridCols: 8,
-        gridRows: 6,
-        pointsPerMatch: 30,
-        timePenalty: 20,
-        previewTime: 0,     // 미리 보기 없음
-        hearts: 25,         // 하트 25개
-        specialCards: {
-            bombs: 4,       // 폭탄 카드 4장
-            shuffle: true,  // 카드 섞임 효과
-            instantDeath: true  // 즉사 메커니즘
-        },
-        color: {
-            bg: '#212121',
-            card: '#D32F2F',
-            text: '#FFEBEE'
-        }
-    }
+    // FUTURE FEATURE: 재앙 모드 (3장 매칭 시스템 구현 필요)
+    // DISASTER: {
+    //     name: '재앙',
+    //     pairs: 12,          // 12쌍 = 36장 (3장 매칭)
+    //     timeLimit: 75,      // 1분 15초
+    //     gridCols: 6,
+    //     gridRows: 6,
+    //     pointsPerMatch: 25,
+    //     timePenalty: 18,
+    //     matchingRule: 3,    // 3장 매칭 - 구현 필요
+    //     previewTime: 0,
+    //     hearts: 25,
+    //     specialCards: {
+    //         bombs: 2        // 폭탄 카드 기능 구현 필요
+    //     },
+    //     color: {
+    //         bg: '#E1BEE7',
+    //         card: '#9C27B0',
+    //         text: '#4A148C'
+    //     }
+    // },
+
+    // FUTURE FEATURE: 지옥 모드 (특수 카드 및 고급 메커니즘 구현 필요)
+    // HELL: {
+    //     name: '지옥',
+    //     pairs: 22,          // 22쌍 = 44장
+    //     timeLimit: 60,      // 1분
+    //     gridCols: 8,
+    //     gridRows: 6,
+    //     pointsPerMatch: 30,
+    //     timePenalty: 20,
+    //     previewTime: 0,
+    //     hearts: 25,
+    //     specialCards: {
+    //         bombs: 4,           // 폭탄 카드 기능 구현 필요
+    //         shuffle: true,      // 카드 섞임 효과 구현 필요
+    //         instantDeath: true  // 즉사 메커니즘 구현 필요
+    //     },
+    //     color: {
+    //         bg: '#212121',
+    //         card: '#D32F2F',
+    //         text: '#FFEBEE'
+    //     }
+    // }
 };
 
 // 캔버스 설정
@@ -133,57 +136,20 @@ const GAME_STATE = {
     RESULT: 'result'        // 결과 화면
 };
 
-// TODO (방채민): 점수 계산 공식
-// - 기본 점수: 매칭 성공 시 난이도별 점수
-// - 보너스: 남은 시간에 비례
-// - 콤보: 연속 성공 시 배수 증가
-// - 페널티: 실패 시 점수 감점
+// 점수 계산 시스템 (구현 완료)
+// - 기본 점수: 매칭 성공 시 난이도별 점수 (pointsPerMatch)
+// - 콤보 보너스: 연속 성공 시 combo * 5 점수 추가
+// - 시간 페널티: 실패 시 timePenalty 초 감소
+// - 최종 점수: GameState.getResultStats()에서 계산
 
-// TODO (방채민): 카드 테마 이미지 경로
-const CARD_THEMES = {
-    FRUIT: [
-        'assets/images/cards/apple.png',
-        'assets/images/cards/banana.png',
-        'assets/images/cards/cherry.png',
-        // ... 추가 필요
-    ],
-    COFFEE: [
-        // 손아영: 커피 테마 이미지 경로 추가
-    ],
-    FASHION: [
-        // 손아영: 패션 아이템 이미지 경로 추가
-    ]
-};
+// 향후 확장 기능
+// FUTURE: 카드 테마 시스템 (이미지 기반)
+// FUTURE: 효과음 시스템 (현재 SoundManager에서 처리)
 
-// 효과음 경로 (손아영)
-const SOUNDS = {
-    click: 'assets/sounds/click.mp3',
-    match: 'assets/sounds/match.mp3',
-    mismatch: 'assets/sounds/mismatch.mp3',
-    complete: 'assets/sounds/complete.mp3',
-    bomb: 'assets/sounds/bomb.mp3',
-    bonus: 'assets/sounds/bonus.mp3',
-    shuffle: 'assets/sounds/shuffle.mp3',
-    heartLost: 'assets/sounds/heartLost.mp3'
-};
-
-// 특수 카드 타입
+// 특수 카드 타입 (향후 확장용)
+// FUTURE FEATURE: 현재는 NORMAL 카드만 구현됨
+// FUTURE: BONUS 카드 - 정답 짝 카드 (자동 매칭)
+// FUTURE: BOMB 카드 - 폭탄 카드 (페널티)
 const CARD_TYPE = {
-    NORMAL: 'normal',       // 일반 카드
-    BONUS: 'bonus',         // 정답 짝 카드 (자동 매칭)
-    BOMB: 'bomb'            // 폭탄 카드 (페널티)
-};
-
-// 특수 카드 설정
-const SPECIAL_CARD_CONFIG = {
-    BONUS: {
-        autoRevealDelay: 2000,  // 2초 후 자동 공개
-        pointsBonus: 50,        // 보너스 점수
-        color: '#FFD700'        // 금색
-    },
-    BOMB: {
-        timePenalty: 30,        // 30초 감점
-        shuffleCards: true,     // 카드 섞기 트리거
-        color: '#FF0000'        // 빨간색
-    }
+    NORMAL: 'normal'        // 일반 카드 (현재 유일하게 구현된 타입)
 };
