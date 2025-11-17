@@ -83,20 +83,28 @@ class GameManager {
      * @private
      */
     _startPlaying() {
-        // 모든 카드를 뒷면으로 뒤집기
+        const animDuration = 600;  // 애니메이션 시간 (ms)
+
+        // 모든 카드에 뒤집기 애니메이션 시작
         this.state.cards.forEach(card => {
             if (!card.isMatched) {
-                card.setFlipped(false);
+                // cardRenderer는 main.js에서 전역으로 선언됨
+                if (typeof cardRenderer !== 'undefined') {
+                    cardRenderer.animateFlip(card, animDuration, false);  // false = 뒷면으로
+                }
             }
         });
 
-        // PLAYING 상태로 전환
-        this.state.startGame();
+        // 애니메이션 완료 후 게임 시작
+        setTimeout(() => {
+            // PLAYING 상태로 전환
+            this.state.startGame();
 
-        // 타이머 시작
-        this._startTimer();
+            // 타이머 시작
+            this._startTimer();
 
-        console.log('Preview ended, game playing started');
+            console.log('Preview ended, game playing started');
+        }, animDuration);
     }
 
     /**
@@ -152,14 +160,20 @@ class GameManager {
             return false;
         }
 
-        // 카드 뒤집기
-        try {
-            card.flip();
-            this._notifyCardFlip(card);
-        } catch (error) {
-            console.error('Failed to flip card:', error);
-            return false;
+        // 카드 뒤집기 애니메이션
+        if (typeof cardRenderer !== 'undefined') {
+            cardRenderer.animateFlip(card, 300, true);  // true = 앞면으로, 300ms
+        } else {
+            // fallback: 애니메이션 없이 즉시 뒤집기
+            try {
+                card.flip();
+            } catch (error) {
+                console.error('Failed to flip card:', error);
+                return false;
+            }
         }
+
+        this._notifyCardFlip(card);
 
         // 첫 번째 카드 선택
         if (!this.state.firstCard) {
@@ -258,13 +272,26 @@ class GameManager {
         this._notifyMismatch(card1, card2, timePenalty);
         this._notifyTimeUpdate();
 
-        // 카드 뒤집기 (지연)
+        // 카드 뒤집기 애니메이션 (지연)
+        const flipAnimDuration = 300;
         setTimeout(() => {
-            if (!card1.isMatched) card1.flip();
-            if (!card2.isMatched) card2.flip();
+            // 애니메이션으로 뒷면으로 뒤집기
+            if (!card1.isMatched && typeof cardRenderer !== 'undefined') {
+                cardRenderer.animateFlip(card1, flipAnimDuration, false);
+            } else if (!card1.isMatched) {
+                card1.flip();  // fallback
+            }
 
-            // 선택 초기화
-            this.state.clearSelection();
+            if (!card2.isMatched && typeof cardRenderer !== 'undefined') {
+                cardRenderer.animateFlip(card2, flipAnimDuration, false);
+            } else if (!card2.isMatched) {
+                card2.flip();  // fallback
+            }
+
+            // 애니메이션 완료 후 선택 초기화
+            setTimeout(() => {
+                this.state.clearSelection();
+            }, flipAnimDuration);
         }, CARD_CONFIG.mismatchDelay || 1000);
     }
 

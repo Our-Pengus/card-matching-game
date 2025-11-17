@@ -241,15 +241,24 @@ class CardRenderer {
 
     /**
      * 뒤집기 애니메이션
+     * @param {Card} card - 애니메이션 대상 카드
+     * @param {number} duration - 애니메이션 시간 (ms)
+     * @param {boolean|null} flipToFront - true: 앞면으로, false: 뒷면으로, null: 현재 상태 반전
      */
-    animateFlip(card, duration = 300) {
+    animateFlip(card, duration = 300, flipToFront = null) {
         if (!card) return;
+
+        // flipToFront가 명시되지 않으면 현재 상태 반전
+        const targetFlipped = flipToFront !== null ? flipToFront : !card.isFlipped;
 
         const animState = {
             type: 'flip',
             startTime: millis(),
             duration: duration,
-            progress: 0
+            progress: 0,
+            initialFlipped: card.isFlipped,   // 시작 시 상태
+            targetFlipped: targetFlipped,     // 목표 상태
+            switched: false                    // 중간 전환 플래그
         };
 
         this.animations.set(card, animState);
@@ -258,6 +267,8 @@ class CardRenderer {
         setTimeout(() => {
             this.animations.delete(card);
             card.setAnimating(false);
+            // 애니메이션 완료 후 최종 상태 보장
+            card.setFlipped(targetFlipped);
         }, duration);
     }
 
@@ -327,6 +338,13 @@ class CardRenderer {
                 // 3D 회전 효과
                 const angle = animState.progress * Math.PI;
                 const scaleX = Math.abs(Math.cos(angle));
+
+                // scaleX ≈ 0 순간 (progress ≈ 0.5)에 앞면↔뒷면 전환
+                if (animState.progress >= 0.5 && !animState.switched) {
+                    card.setFlipped(animState.targetFlipped);
+                    animState.switched = true;  // 한 번만 전환
+                }
+
                 scale(scaleX, 1);
                 break;
 
