@@ -254,24 +254,51 @@ function setupGameCallbacks() {
     };
 
     // 매칭 성공
-    gameManager.onMatch = (card1, card2, points) => {
-        console.log(`Match! Cards ${card1.id} and ${card2.id}, +${points} points`);
-        uiRenderer.showMessage('짝 성공! 🎉', 1000, 'success');
-        cardRenderer.animateMatch(card1, card2);
-        soundManager.play('match', 0.7);
+    gameManager.onMatch = (card1, card2, points, card3 = null) => {
+        if (card3) {
+            // 3장 매칭
+            console.log(`Triple Match! Cards ${card1.id}, ${card2.id}, ${card3.id}, +${points} points`);
+            uiRenderer.showMessage('3장 매칭 성공! 🎉🎉🎉', 1500, 'success');
+            cardRenderer.animateMatch(card1, card2);
+            // 세 번째 카드도 애니메이션 (간단히 처리)
+            setTimeout(() => {
+                if (cardRenderer.animateMatch) {
+                    cardRenderer.animateMatch(card3, card3);
+                }
+            }, 200);
+            soundManager.play('match', 0.8);
 
-        // 파티클 효과 (카드 중간 위치)
-        const centerX = (card1.x + card2.x) / 2 + CARD_CONFIG.width / 2;
-        const centerY = (card1.y + card2.y) / 2 + CARD_CONFIG.height / 2;
-        particleSystem.createMatchParticles(centerX, centerY);
+            // 파티클 효과 (3장 중간 위치)
+            const centerX = (card1.x + card2.x + card3.x) / 3 + CARD_CONFIG.width / 2;
+            const centerY = (card1.y + card2.y + card3.y) / 3 + CARD_CONFIG.height / 2;
+            particleSystem.createMatchParticles(centerX, centerY);
+        } else {
+            // 2장 매칭
+            console.log(`Match! Cards ${card1.id} and ${card2.id}, +${points} points`);
+            uiRenderer.showMessage('짝 성공! 🎉', 1000, 'success');
+            cardRenderer.animateMatch(card1, card2);
+            soundManager.play('match', 0.7);
+
+            // 파티클 효과 (카드 중간 위치)
+            const centerX = (card1.x + card2.x) / 2 + CARD_CONFIG.width / 2;
+            const centerY = (card1.y + card2.y) / 2 + CARD_CONFIG.height / 2;
+            particleSystem.createMatchParticles(centerX, centerY);
+        }
     };
 
     // 매칭 실패
-    gameManager.onMismatch = (card1, card2, penalty) => {
-        console.log(`Mismatch! Cards ${card1.id} and ${card2.id}, -${penalty}s`);
-        uiRenderer.showMessage('다시 도전! 💪', 800, 'error');
-        cardRenderer.animateMismatch(card1, card2);
-        soundManager.play('mismatch', 0.6);
+    gameManager.onMismatch = (card1, card2, penalty, card3 = null) => {
+        if (card3) {
+            console.log(`Triple Mismatch! Cards ${card1.id}, ${card2.id}, ${card3.id}, -${penalty}s`);
+            uiRenderer.showMessage('다시 도전! 💪', 800, 'error');
+            cardRenderer.animateMismatch(card1, card2);
+            soundManager.play('mismatch', 0.6);
+        } else {
+            console.log(`Mismatch! Cards ${card1.id} and ${card2.id}, -${penalty}s`);
+            uiRenderer.showMessage('다시 도전! 💪', 800, 'error');
+            cardRenderer.animateMismatch(card1, card2);
+            soundManager.play('mismatch', 0.6);
+        }
     };
 
     // 점수 변경
@@ -311,6 +338,22 @@ function setupGameCallbacks() {
         setTimeout(() => {
             uiRenderer.showMessage('시간 초과! ⏰', 2000, 'error');
         }, 500);
+    };
+
+    // 폭탄 폭발
+    gameManager.onBombExplode = (bombCard, effectType) => {
+        console.log(`Bomb exploded! Effect: ${effectType}`);
+        
+        if (effectType === 'instant_death') {
+            uiRenderer.showMessage('💣 즉사! 게임 오버!', 2000, 'error');
+            soundManager.play('mismatch', 1.0);
+        } else if (effectType === 'shuffle') {
+            uiRenderer.showMessage('💣 카드가 섞였습니다!', 1500, 'error');
+            soundManager.play('mismatch', 0.8);
+        } else {
+            uiRenderer.showMessage('💣 폭탄! 시간 감소!', 1000, 'error');
+            soundManager.play('mismatch', 0.7);
+        }
     };
 }
 
