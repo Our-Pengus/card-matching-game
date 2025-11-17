@@ -1,110 +1,147 @@
 /**
- * @fileoverview 게임 로직 및 규칙 관리
+ * @fileoverview 게임 로직 및 규칙 관리 (리팩토링 버전)
  * @module logic/GameManager
- * @author 방채민
+ * @author 방채민 (원본), Claude (리팩토링)
+ * @description EventEmitter 패턴, 에러 핸들링, 메모리 관리 강화
  */
 
 /**
  * 게임의 핵심 비즈니스 로직 담당
- * 상태 관리는 GameState, 카드 관리는 CardManager에 위임
+ * EventEmitter를 상속하여 이벤트 기반 통신
  * @class
+ * @extends EventEmitter
  */
-class GameManager {
+class GameManager extends EventEmitter {
     /**
      * @param {GameState} gameState - 게임 상태 객체
      * @param {CardManager} cardManager - 카드 관리자
+     * @param {Object} [options={}] - 추가 옵션
      */
-    constructor(gameState, cardManager) {
+    constructor(gameState, cardManager, options = {}) {
+        super();
+
+        if (!gameState || !cardManager) {
+            throw new TypeError('GameState and CardManager are required');
+        }
+
         this.state = gameState;
         this.cardManager = cardManager;
-
-        // 콜백 함수들 (UI 업데이트용)
-        this.onCardFlip = null;
-        this.onMatch = null;
-        this.onMismatch = null;
-        this.onGameComplete = null;
-        this.onGameOver = null;
-        this.onScoreChange = null;
-        this.onTimeUpdate = null;
-        this.onHeartLost = null;
+        this.options = {
+            autoCleanup: true,
+            errorRecovery: true,
+            ...options
+        };
 
         // 타이머 관련
         this.timerInterval = null;
         this.previewTimeout = null;
+
+        // 리소스 정리 등록
+        if (this.options.autoCleanup) {
+            this._registerCleanupHandlers();
+        }
+
+        // 디버그 모드 (개발 환경에서만)
+        this._debug = typeof config !== 'undefined' && config.get('debug.enabled', false);
+
+        if (this._debug) {
+            logger.info('[GameManager] Initialized with options:', options);
+        }
     }
 
     // ========== 게임 초기화 ==========
 
     /**
      * 게임 시작
-     *
      * @param {Object} difficulty - 난이도 설정
      * @param {string} [theme='FRUIT'] - 카드 테마
+     * @throws {Error} difficulty가 유효하지 않을 경우
      */
     startGame(difficulty, theme = 'FRUIT') {
-        if (!difficulty) {
-            throw new Error('Difficulty is required');
-        }
+        try {
+            this._validateDifficulty(difficulty);
 
-        // 상태 초기화
-        this.state.reset();
-        this.state.setDifficulty(difficulty);
+            // 기존 리소스 정리
+            this._cleanup();
 
-        // 카드 생성
-        const cards = this.cardManager.createDeck(difficulty, theme);
-        this.state.setCards(cards);
+            // 상태 초기화
+            this.state.reset();
+            this.state.setDifficulty(difficulty);
 
-        // 미리 보기 처리
-        const previewTime = difficulty.previewTime || 0;
+            // 카드 생성
+            const cards = this.cardManager.createDeck(difficulty, theme);
+            this.state.setCards(cards);
 
-        if (previewTime > 0) {
-            // PREVIEW 상태로 설정
-            this.state.setPhase(GAME_STATE.PREVIEW);
+            // 이벤트 발생
+            this.emit('game:init', { difficulty, theme, cardCount: cards.length });
 
-            // 모든 카드 앞면으로 표시
-            cards.forEach(card => card.setFlipped(true));
+            // 미리 보기 처리
+            const previewTime = difficulty.previewTime || 0;
 
-            // previewTime 후 게임 시작
-            this.previewTimeout = setTimeout(() => {
+            if (previewTime > 0) {
+                this._startPreview(cards, previewTime);
+            } else {
                 this._startPlaying();
-            }, previewTime);
+            }
 
-            console.log(`Game preview started: ${difficulty.name} difficulty, ${previewTime}ms preview`);
-        } else {
-            // 미리 보기 없음 - 즉시 게임 시작
-            this.state.startGame();
-            this._startTimer();
-            console.log(`Game started: ${difficulty.name} difficulty, ${cards.length} cards (no preview)`);
+            if (this._debug) {
+                logger.info('[GameManager] Game started:', {
+                    difficulty: difficulty.name,
+                    cards: cards.length,
+                    preview: previewTime
+                });
+            }
+        } catch (error) {
+            this._handleError('startGame', error);
+            throw error;
         }
     }
 
     /**
+     * 미리 보기 시작
+     * @private
+     * @param {Card[]} cards - 카드 배열
+     * @param {number} previewTime - 미리 보기 시간 (ms)
+     */
+    _startPreview(cards, previewTime) {
+        this.state.setPhase(GAME_STATE.PREVIEW);
+
+        // 모든 카드 앞면으로 표시
+        cards.forEach(card => card.setFlipped(true));
+
+        this.emit('game:preview:start', { duration: previewTime });
+
+        // previewTime 후 게임 시작
+        this.previewTimeout = setTimeout(() => {
+            this._startPlaying();
+        }, previewTime);
+    }
+
+    /**
      * 미리 보기 종료 후 게임 시작
-     *
      * @private
      */
     _startPlaying() {
-        const animDuration = 600;  // 애니메이션 시간 (ms)
+        const animDuration = 600;
 
-        // 모든 카드에 뒤집기 애니메이션 시작
+        // 모든 카드 뒤집기 애니메이션
         this.state.cards.forEach(card => {
-            if (!card.isMatched) {
-                // cardRenderer는 main.js에서 전역으로 선언됨
-                if (typeof cardRenderer !== 'undefined') {
-                    cardRenderer.animateFlip(card, animDuration, false);  // false = 뒷면으로
-                }
+            if (!card.isMatched && typeof cardRenderer !== 'undefined') {
+                cardRenderer.animateFlip(card, animDuration, false);
             }
         });
 
+        this.emit('game:preview:end');
+
         // 애니메이션 완료 후 게임 시작
         setTimeout(() => {
-            // PLAYING 상태로 전환
             this.state.startGame();
-
-            // 타이머 시작
             this._startTimer();
+            this.emit('game:playing:start');
 
-            console.log('Preview ended, game playing started');
+            if (this._debug) {
+                logger.info('[GameManager] Playing started');
+            }
         }, animDuration);
     }
 
@@ -112,45 +149,51 @@ class GameManager {
      * 게임 리셋
      */
     resetGame() {
-        this._stopTimer();
-        this._clearPreviewTimeout();
-        this.cardManager.resetAllCards(this.state.cards);
-        this.state.reset();
+        try {
+            this._cleanup();
+            this.cardManager.resetAllCards(this.state.cards);
+            this.state.reset();
+            this.emit('game:reset');
+
+            if (this._debug) {
+                logger.info('[GameManager] Game reset');
+            }
+        } catch (error) {
+            this._handleError('resetGame', error);
+        }
     }
 
     // ========== 카드 클릭 처리 ==========
 
     /**
      * 카드 클릭 핸들러
-     *
      * @param {number} x - 마우스 x 좌표
      * @param {number} y - 마우스 y 좌표
      * @returns {boolean} 클릭이 처리되었는지 여부
      */
     handleClick(x, y) {
-        // PREVIEW 상태에서는 클릭 무시
-        if (this.state.isPreview()) {
+        try {
+            // PREVIEW 상태에서는 클릭 무시
+            if (this.state.isPreview() || !this.state.isPlaying()) {
+                return false;
+            }
+
+            // 클릭된 카드 찾기
+            const card = this.cardManager.findCardAt(this.state.cards, x, y);
+
+            if (!card) {
+                return false;
+            }
+
+            return this._handleCardClick(card);
+        } catch (error) {
+            this._handleError('handleClick', error);
             return false;
         }
-
-        if (!this.state.isPlaying()) {
-            return false;
-        }
-
-        // 클릭된 카드 찾기
-        const card = this.cardManager.findCardAt(this.state.cards, x, y);
-
-        if (!card) {
-            return false;
-        }
-
-        // 카드 클릭 처리
-        return this._handleCardClick(card);
     }
 
     /**
      * 카드 클릭 처리 (내부)
-     *
      * @private
      * @param {Card} card - 클릭된 카드
      * @returns {boolean}
@@ -163,18 +206,12 @@ class GameManager {
 
         // 카드 뒤집기 애니메이션
         if (typeof cardRenderer !== 'undefined') {
-            cardRenderer.animateFlip(card, 300, true);  // true = 앞면으로, 300ms
+            cardRenderer.animateFlip(card, 300, true);
         } else {
-            // fallback: 애니메이션 없이 즉시 뒤집기
-            try {
-                card.flip();
-            } catch (error) {
-                console.error('Failed to flip card:', error);
-                return false;
-            }
+            card.flip();
         }
 
-        this._notifyCardFlip(card);
+        this.emit('card:flip', card);
 
         // 첫 번째 카드 선택
         if (!this.state.firstCard) {
@@ -182,7 +219,7 @@ class GameManager {
             return true;
         }
 
-        // 두 번째 카드 선택 (같은 카드는 제외)
+        // 두 번째 카드 선택
         if (!this.state.secondCard && card !== this.state.firstCard) {
             this.state.selectSecondCard(card);
 
@@ -201,18 +238,16 @@ class GameManager {
 
     /**
      * 카드 짝 맞추기 확인
-     *
      * @private
      */
     _checkMatch() {
         const { firstCard, secondCard } = this.state;
 
         if (!firstCard || !secondCard) {
-            console.error('Cannot check match: missing cards');
+            logger.error('[GameManager] Cannot check match: missing cards');
             return;
         }
 
-        // 짝 비교
         const isMatch = firstCard.isMatchWith(secondCard);
 
         if (isMatch) {
@@ -224,7 +259,6 @@ class GameManager {
 
     /**
      * 매칭 성공 처리
-     *
      * @private
      * @param {Card} card1
      * @param {Card} card2
@@ -237,6 +271,7 @@ class GameManager {
         // 점수 계산
         const basePoints = this.state.difficulty.pointsPerMatch;
         const comboBonus = this.state.combo > 0 ? this.state.combo * 5 : 0;
+        const totalPoints = basePoints + comboBonus;
 
         // 상태 업데이트
         this.state.recordMatch(basePoints);
@@ -247,9 +282,13 @@ class GameManager {
         // 선택 초기화
         this.state.clearSelection();
 
-        // 콜백 호출
-        this._notifyMatch(card1, card2, basePoints + comboBonus);
-        this._notifyScoreChange();
+        // 이벤트 발생
+        this.emit('match:success', {
+            card1,
+            card2,
+            points: totalPoints,
+            combo: this.state.combo
+        });
 
         // 게임 클리어 체크
         if (this.state.isAllMatched()) {
@@ -259,76 +298,85 @@ class GameManager {
 
     /**
      * 매칭 실패 처리
-     *
      * @private
      * @param {Card} card1
      * @param {Card} card2
      */
     _handleMismatch(card1, card2) {
-        // 시간 페널티
         const timePenalty = this.state.difficulty.timePenalty || 0;
-
-        // 하트 감소 전 개수 저장
         const previousHearts = this.state.hearts;
 
         // 상태 업데이트 (하트 감소 포함)
         this.state.recordMismatch(timePenalty);
 
-        // 하트 감소 콜백 호출
+        // 하트 감소 이벤트
         if (this.state.hearts < previousHearts) {
-            this._notifyHeartLost(this.state.hearts);
+            this.emit('heart:lost', {
+                remaining: this.state.hearts,
+                max: this.state.maxHearts
+            });
         }
 
-        // 콜백 호출
-        this._notifyMismatch(card1, card2, timePenalty);
-        this._notifyTimeUpdate();
+        // 이벤트 발생
+        this.emit('match:fail', {
+            card1,
+            card2,
+            penalty: timePenalty
+        });
 
         // 하트가 0이 되면 게임 오버
         if (this.state.isHeartsEmpty()) {
-            // 카드를 먼저 뒤집은 후 게임 오버 처리
-            const flipAnimDuration = 300;
-            setTimeout(() => {
-                if (!card1.isMatched && typeof cardRenderer !== 'undefined') {
-                    cardRenderer.animateFlip(card1, flipAnimDuration, false);
-                } else if (!card1.isMatched) {
-                    card1.flip();
-                }
-
-                if (!card2.isMatched && typeof cardRenderer !== 'undefined') {
-                    cardRenderer.animateFlip(card2, flipAnimDuration, false);
-                } else if (!card2.isMatched) {
-                    card2.flip();
-                }
-
-                // 애니메이션 완료 후 게임 오버
-                setTimeout(() => {
-                    this.state.clearSelection();
-                    this._gameOver('hearts');
-                }, flipAnimDuration);
-            }, CARD_CONFIG.mismatchDelay || 1000);
+            this._handleHeartsDepleted(card1, card2);
             return;
         }
 
-        // 카드 뒤집기 애니메이션 (지연)
+        // 카드 뒤집기 애니메이션
+        this._flipCardsBack(card1, card2);
+    }
+
+    /**
+     * 하트 소진 처리
+     * @private
+     * @param {Card} card1
+     * @param {Card} card2
+     */
+    _handleHeartsDepleted(card1, card2) {
         const flipAnimDuration = 300;
+
         setTimeout(() => {
-            // 애니메이션으로 뒷면으로 뒤집기
+            this._flipCardsBack(card1, card2, flipAnimDuration);
+
+            setTimeout(() => {
+                this.state.clearSelection();
+                this._gameOver('hearts');
+            }, flipAnimDuration);
+        }, CARD_CONFIG.mismatchDelay || 1000);
+    }
+
+    /**
+     * 카드 뒷면으로 뒤집기
+     * @private
+     * @param {Card} card1
+     * @param {Card} card2
+     * @param {number} [duration=300] - 애니메이션 시간
+     */
+    _flipCardsBack(card1, card2, duration = 300) {
+        setTimeout(() => {
             if (!card1.isMatched && typeof cardRenderer !== 'undefined') {
-                cardRenderer.animateFlip(card1, flipAnimDuration, false);
+                cardRenderer.animateFlip(card1, duration, false);
             } else if (!card1.isMatched) {
-                card1.flip();  // fallback
+                card1.flip();
             }
 
             if (!card2.isMatched && typeof cardRenderer !== 'undefined') {
-                cardRenderer.animateFlip(card2, flipAnimDuration, false);
+                cardRenderer.animateFlip(card2, duration, false);
             } else if (!card2.isMatched) {
-                card2.flip();  // fallback
+                card2.flip();
             }
 
-            // 애니메이션 완료 후 선택 초기화
             setTimeout(() => {
                 this.state.clearSelection();
-            }, flipAnimDuration);
+            }, duration);
         }, CARD_CONFIG.mismatchDelay || 1000);
     }
 
@@ -336,20 +384,18 @@ class GameManager {
 
     /**
      * 타이머 시작
-     *
      * @private
      */
     _startTimer() {
-        this._stopTimer(); // 기존 타이머 정리
+        this._stopTimer();
 
         this.timerInterval = setInterval(() => {
             const elapsed = this.state.getElapsedSeconds();
             const remaining = this.state.timeLimitSeconds - elapsed;
 
             this.state.updateTime(remaining);
-            this._notifyTimeUpdate();
+            this.emit('timer:update', { remaining, elapsed });
 
-            // 시간 초과
             if (remaining <= 0) {
                 this._gameOver('time');
             }
@@ -358,7 +404,6 @@ class GameManager {
 
     /**
      * 타이머 정지
-     *
      * @private
      */
     _stopTimer() {
@@ -370,7 +415,6 @@ class GameManager {
 
     /**
      * 미리 보기 타이머 정리
-     *
      * @private
      */
     _clearPreviewTimeout() {
@@ -384,88 +428,130 @@ class GameManager {
 
     /**
      * 게임 클리어
-     *
      * @private
      */
     _completeGame() {
-        this._stopTimer();
-        this._clearPreviewTimeout();
+        this._cleanup();
         this.state.endGameWin();
-        this._notifyGameComplete();
 
-        console.log('Game Complete!', this.state.getResultStats());
+        const stats = this.state.getResultStats();
+        this.emit('game:complete', stats);
+
+        if (this._debug) {
+            logger.info('[GameManager] Game completed:', stats);
+        }
     }
 
     /**
      * 게임 오버
-     *
      * @private
      * @param {string} reason - 'hearts' | 'time'
      */
     _gameOver(reason = 'time') {
+        this._cleanup();
+        this.state.endGameLose(reason);
+
+        const stats = this.state.getResultStats();
+        this.emit('game:over', { reason, stats });
+
+        if (this._debug) {
+            logger.info('[GameManager] Game over:', { reason, stats });
+        }
+    }
+
+    // ========== 리소스 관리 ==========
+
+    /**
+     * 리소스 정리
+     * @private
+     */
+    _cleanup() {
         this._stopTimer();
         this._clearPreviewTimeout();
-        this.state.endGameLose(reason);
-        this._notifyGameOver();
 
-        console.log('Game Over!', this.state.getResultStats());
-    }
-
-    // ========== 콜백 통지 ==========
-
-    _notifyCardFlip(card) {
-        if (this.onCardFlip) {
-            this.onCardFlip(card);
+        if (this._debug) {
+            logger.debug('[GameManager] Resources cleaned up');
         }
     }
 
-    _notifyMatch(card1, card2, points) {
-        if (this.onMatch) {
-            this.onMatch(card1, card2, points);
-        }
+    /**
+     * 정리 핸들러 등록 (메모리 누수 방지)
+     * @private
+     */
+    _registerCleanupHandlers() {
+        // 페이지 언로드 시 정리
+        window.addEventListener('beforeunload', () => {
+            this._cleanup();
+            this.removeAllListeners();
+        });
+
+        // 페이지 숨김 시 타이머 정지
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                this._stopTimer();
+            } else if (this.state.isPlaying()) {
+                this._startTimer();
+            }
+        });
     }
 
-    _notifyMismatch(card1, card2, penalty) {
-        if (this.onMismatch) {
-            this.onMismatch(card1, card2, penalty);
-        }
-    }
+    /**
+     * 인스턴스 소멸 (명시적 정리)
+     */
+    destroy() {
+        this._cleanup();
+        this.removeAllListeners();
+        this.state = null;
+        this.cardManager = null;
 
-    _notifyScoreChange() {
-        if (this.onScoreChange) {
-            this.onScoreChange(this.state.score, this.state.combo);
-        }
-    }
-
-    _notifyTimeUpdate() {
-        if (this.onTimeUpdate) {
-            this.onTimeUpdate(this.state.timeRemaining);
-        }
-    }
-
-    _notifyHeartLost(remainingHearts) {
-        if (this.onHeartLost) {
-            this.onHeartLost(remainingHearts);
-        }
-    }
-
-    _notifyGameComplete() {
-        if (this.onGameComplete) {
-            this.onGameComplete(this.state.getResultStats());
-        }
-    }
-
-    _notifyGameOver() {
-        if (this.onGameOver) {
-            this.onGameOver(this.state.getResultStats());
+        if (this._debug) {
+            logger.info('[GameManager] Instance destroyed');
         }
     }
 
     // ========== 유틸리티 ==========
 
     /**
+     * 난이도 검증
+     * @private
+     * @param {Object} difficulty
+     * @throws {Error} 유효하지 않은 난이도
+     */
+    _validateDifficulty(difficulty) {
+        if (!difficulty || typeof difficulty !== 'object') {
+            throw new TypeError('Difficulty must be an object');
+        }
+
+        const required = ['name', 'pairs', 'timeLimit', 'gridCols', 'gridRows'];
+        for (const field of required) {
+            if (!(field in difficulty)) {
+                throw new Error(`Difficulty missing required field: ${field}`);
+            }
+        }
+    }
+
+    /**
+     * 에러 처리
+     * @private
+     * @param {string} method - 메서드 이름
+     * @param {Error} error - 에러 객체
+     */
+    _handleError(method, error) {
+        logger.error(`[GameManager] Error in ${method}:`, error);
+        this.emit('error', { method, error });
+
+        if (this.options.errorRecovery) {
+            // 자동 복구 시도
+            try {
+                this.resetGame();
+            } catch (recoveryError) {
+                logger.error('[GameManager] Error recovery failed:', recoveryError);
+            }
+        }
+    }
+
+    /**
      * 현재 게임 상태 반환
-     *
      * @returns {Object}
      */
     getGameInfo() {
@@ -489,11 +575,12 @@ class GameManager {
      * 디버그 정보 출력
      */
     debug() {
-        console.group('Game Manager Debug');
-        console.log('State:', this.state.toJSON());
-        console.log('Info:', this.getGameInfo());
+        logger.group('[GameManager] Debug Info');
+        logger.info('State:', this.state.toJSON());
+        logger.info('Info:', this.getGameInfo());
+        logger.info('Events:', this.eventNames());
         this.cardManager.debugPrint(this.state.cards);
-        console.groupEnd();
+        logger.groupEnd();
     }
 }
 
