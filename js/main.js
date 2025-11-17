@@ -55,6 +55,7 @@ function draw() {
             uiRenderer.drawDifficultyScreen();
             break;
 
+        case GAME_STATE.PREVIEW:
         case GAME_STATE.PLAYING:
             drawGamePlay();
             break;
