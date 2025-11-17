@@ -252,18 +252,18 @@ function initializeInstances() {
 }
 
 /**
- * 게임 매니저 콜백 설정
+ * 게임 매니저 이벤트 리스너 설정 (EventEmitter 패턴)
  */
 function setupGameCallbacks() {
     // 카드 뒤집기
-    gameManager.onCardFlip = (card) => {
+    gameManager.on('card:flip', (card) => {
         console.log('Card flipped:', card.id);
-        cardRenderer.animateFlip(card);
         soundManager.play('click', 0.5);
-    };
+    });
 
     // 매칭 성공
-    gameManager.onMatch = (card1, card2, points) => {
+    gameManager.on('match:success', (data) => {
+        const { card1, card2, points } = data;
         console.log(`Match! Cards ${card1.id} and ${card2.id}, +${points} points`);
         uiRenderer.showMessage('짝 성공! 🎉', 1000, 'success');
         cardRenderer.animateMatch(card1, card2);
@@ -273,45 +273,63 @@ function setupGameCallbacks() {
         const centerX = (card1.x + card2.x) / 2 + CARD_CONFIG.width / 2;
         const centerY = (card1.y + card2.y) / 2 + CARD_CONFIG.height / 2;
         particleSystem.createMatchParticles(centerX, centerY);
-    };
+    });
 
     // 매칭 실패
-    gameManager.onMismatch = (card1, card2, penalty) => {
+    gameManager.on('match:fail', (data) => {
+        const { card1, card2, penalty } = data;
         console.log(`Mismatch! Cards ${card1.id} and ${card2.id}, -${penalty}s`);
         uiRenderer.showMessage('다시 도전! 💪', 800, 'error');
         cardRenderer.animateMismatch(card1, card2);
         soundManager.play('mismatch', 0.6);
-    };
-
-    // 점수 변경
-    gameManager.onScoreChange = (score, combo) => {
-        console.log(`Score: ${score}, Combo: ${combo}`);
-    };
+    });
 
     // 시간 업데이트
-    gameManager.onTimeUpdate = (timeRemaining) => {
+    gameManager.on('timer:update', (data) => {
+        const { remaining } = data;
         // 10초 이하 경고
-        if (timeRemaining === 10) {
+        if (remaining === 10) {
             uiRenderer.showMessage('⏰ 시간이 얼마 남지 않았어요!', 2000, 'error');
         }
-    };
+    });
 
     // 하트 감소
-    gameManager.onHeartLost = (remainingHearts) => {
-        console.log(`Heart lost! Remaining: ${remainingHearts}`);
-        
-        if (remainingHearts === 0) {
+    gameManager.on('heart:lost', (data) => {
+        const { remaining, max } = data;
+        console.log(`Heart lost! Remaining: ${remaining}`);
+
+        if (remaining === 0) {
             uiRenderer.showMessage('💔 하트를 모두 소진했어요!', 1500, 'error');
-        } else if (remainingHearts <= gameState.maxHearts * 0.3) {
-            uiRenderer.showMessage(`💔 하트 ${remainingHearts}개 남음!`, 1200, 'error');
+        } else if (remaining <= max * 0.3) {
+            uiRenderer.showMessage(`💔 하트 ${remaining}개 남음!`, 1200, 'error');
         }
-        
+
         // 하트 감소 효과음
         soundManager.play('mismatch', 0.8);
-    };
+    });
+
+    // 게임 초기화
+    gameManager.on('game:init', (data) => {
+        console.log('Game initialized:', data);
+    });
+
+    // 미리 보기 시작
+    gameManager.on('game:preview:start', (data) => {
+        console.log('Preview started:', data);
+    });
+
+    // 미리 보기 종료
+    gameManager.on('game:preview:end', () => {
+        console.log('Preview ended');
+    });
+
+    // 게임 플레이 시작
+    gameManager.on('game:playing:start', () => {
+        console.log('Game playing started');
+    });
 
     // 게임 완료
-    gameManager.onGameComplete = (stats) => {
+    gameManager.on('game:complete', (stats) => {
         console.log('Game completed!', stats);
 
         // 축하 폭죽
@@ -326,23 +344,36 @@ function setupGameCallbacks() {
         setTimeout(() => {
             uiRenderer.showMessage('축하합니다! 🎉', 2000, 'success');
         }, 500);
-    };
+    });
 
     // 게임 오버
-    gameManager.onGameOver = (stats) => {
-        console.log('Game over!', stats);
-        
+    gameManager.on('game:over', (data) => {
+        const { reason, stats } = data;
+        console.log('Game over!', { reason, stats });
+
         let message = '게임 오버!';
-        if (stats.gameOverReason === 'hearts') {
+        if (reason === 'hearts') {
             message = '하트 소진! 💔';
-        } else if (stats.gameOverReason === 'time') {
+        } else if (reason === 'time') {
             message = '시간 초과! ⏰';
         }
-        
+
         setTimeout(() => {
             uiRenderer.showMessage(message, 2000, 'error');
         }, 500);
-    };
+    });
+
+    // 게임 리셋
+    gameManager.on('game:reset', () => {
+        console.log('Game reset');
+    });
+
+    // 에러 처리
+    gameManager.on('error', (data) => {
+        const { method, error } = data;
+        console.error(`[GameManager Error] ${method}:`, error);
+        uiRenderer.showMessage('오류가 발생했습니다. 게임을 다시 시작해주세요.', 3000, 'error');
+    });
 }
 
 // ========== 디버그 함수 (브라우저 콘솔에서 사용) ==========

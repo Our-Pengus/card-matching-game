@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>정리 검증</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="test-results"></div>
+    <div id="canvas-container"></div>
+
+    <!-- 모든 스크립트 로드 -->
+    <script src="js/config.js"></script>
+    <script src="js/utils/ArrayUtils.js"></script>
+    <script src="js/utils/GridCalculator.js"></script>
+    <script src="js/utils/SoundManager.js"></script>
+    <script src="js/utils/HighScoreManager.js"></script>
+    <script src="js/core/Card.js"></script>
+    <script src="js/core/GameState.js"></script>
+    <script src="js/logic/CardManager.js"></script>
+    <script src="js/logic/GameManager.js"></script>
+    <script src="js/rendering/CardRenderer.js"></script>
+    <script src="js/rendering/UIRenderer.js"></script>
+    <script src="js/rendering/ParticleSystem.js"></script>
+    <script src="js/main.js"></script>
+
+    <script>
+        // 기본 검증
+        window.addEventListener('load', () => {
+            const results = document.getElementById('test-results');
+            const tests = [];
+
+            // 필수 클래스 확인
+            tests.push({ name: 'Card 클래스', pass: typeof Card !== 'undefined' });
+            tests.push({ name: 'GameState 클래스', pass: typeof GameState !== 'undefined' });
+            tests.push({ name: 'CardManager 클래스', pass: typeof CardManager !== 'undefined' });
+            tests.push({ name: 'GameManager 클래스', pass: typeof GameManager !== 'undefined' });
+            tests.push({ name: 'CardRenderer 클래스', pass: typeof CardRenderer !== 'undefined' });
+            tests.push({ name: 'UIRenderer 클래스', pass: typeof UIRenderer !== 'undefined' });
+            tests.push({ name: 'ParticleSystem 클래스', pass: typeof ParticleSystem !== 'undefined' });
+            tests.push({ name: 'CONFIG 객체', pass: typeof CONFIG !== 'undefined' });
+
+            // p5.js 함수 확인
+            tests.push({ name: 'setup 함수', pass: typeof setup !== 'undefined' });
+            tests.push({ name: 'draw 함수', pass: typeof draw !== 'undefined' });
+
+            let html = '<h2>검증 결과</h2><ul>';
+            let allPass = true;
+            tests.forEach(test => {
+                html += `<li style="color: ${test.pass ? 'green' : 'red'}">
+                    ${test.pass ? '✅' : '❌'} ${test.name}
+                </li>`;
+                if (!test.pass) allPass = false;
+            });
+            html += '</ul>';
+            html += `<h3 style="color: ${allPass ? 'green' : 'red'}">
+                ${allPass ? '모든 테스트 통과!' : '일부 테스트 실패'}
+            </h3>`;
+
+            results.innerHTML = html;
+
+            console.log('검증 완료:', allPass ? '성공' : '실패');
+        });
+    </script>
+</body>
+</html>
