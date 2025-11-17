@@ -10,13 +10,15 @@ class Card {
      * @param {number} x - 캔버스 상의 x 좌표
      * @param {number} y - 캔버스 상의 y 좌표
      * @param {string} imagePath - 카드 앞면 이미지 경로
+     * @param {string} type - 카드 타입 (CARD_TYPE.NORMAL | BONUS | BOMB)
      */
-    constructor(id, x, y, imagePath) {
+    constructor(id, x, y, imagePath, type = CARD_TYPE.NORMAL) {
         this.id = id;               // 카드 ID (짝 찾기용)
         this.x = x;                 // 화면 위치
         this.y = y;
         this.imagePath = imagePath; // 카드 이미지 (손아영)
         this.image = null;          // 로드된 이미지 객체
+        this.type = type;           // 카드 타입 (특수 카드 지원)
 
         // 카드 상태
         this.isFlipped = false;     // 뒤집혔는지
@@ -26,6 +28,27 @@ class Card {
         // 애니메이션 관련 (윤현준)
         this.flipProgress = 0;      // 0~1 사이 값
         this.scale = 1;             // 호버 효과용
+    }
+
+    /**
+     * 특수 카드 여부 확인
+     */
+    isSpecialCard() {
+        return this.type !== CARD_TYPE.NORMAL;
+    }
+
+    /**
+     * 폭탄 카드 여부 확인
+     */
+    isBomb() {
+        return this.type === CARD_TYPE.BOMB;
+    }
+
+    /**
+     * 보너스 카드 여부 확인
+     */
+    isBonus() {
+        return this.type === CARD_TYPE.BONUS;
     }
 
     /**
@@ -111,33 +134,67 @@ class Card {
 
 /**
  * 카드 배열 생성 및 섞기
- * TODO (방채민): 난이도에 따라 카드 개수 동적 생성
- *
  * @param {number} pairs - 카드 쌍의 개수
  * @param {Object} difficulty - 난이도 설정 객체
  * @returns {Array<Card>} 섞인 카드 배열
  */
 function createCardDeck(pairs, difficulty) {
     let cards = [];
+    const matchingRule = difficulty.matchingRule || 2; // 기본 2장 매칭
+    const specialCards = difficulty.specialCards || {};
 
-    // TODO (방채민):
-    // 1. pairs만큼 카드 쌍 생성 (id가 같은 카드 2개)
-    // 2. Fisher-Yates 알고리즘으로 섞기
-    // 3. 그리드 레이아웃 계산하여 x, y 좌표 할당
-
-    // 임시 예시 코드
+    // 1. 일반 카드 생성 (쌍 생성)
     for (let i = 0; i < pairs; i++) {
-        // 카드 쌍 생성 (같은 ID)
-        for (let j = 0; j < 2; j++) {
-            let x = 0; // TODO: 그리드 계산
-            let y = 0; // TODO: 그리드 계산
-            let imagePath = `assets/images/cards/card_${i}.png`;
-            cards.push(new Card(i, x, y, imagePath));
+        let imagePath = `assets/images/cards/card_${i}.png`;
+
+        // matchingRule에 따라 카드 개수 결정 (2장 또는 3장)
+        for (let j = 0; j < matchingRule; j++) {
+            cards.push(new Card(i, 0, 0, imagePath, CARD_TYPE.NORMAL));
         }
     }
 
-    // TODO: 섞기 알고리즘
-    // shuffleArray(cards);
+    // 2. 보너스 카드 추가 (정답 짝 카드)
+    if (specialCards.bonusPairs) {
+        for (let i = 0; i < specialCards.bonusPairs; i++) {
+            const bonusId = pairs + 1000 + i; // 일반 카드와 구별되는 ID
+            cards.push(new Card(bonusId, 0, 0, 'assets/images/cards/bonus.png', CARD_TYPE.BONUS));
+            cards.push(new Card(bonusId, 0, 0, 'assets/images/cards/bonus.png', CARD_TYPE.BONUS));
+        }
+    }
+
+    // 3. 폭탄 카드 추가
+    if (specialCards.bombs) {
+        for (let i = 0; i < specialCards.bombs; i++) {
+            const bombId = pairs + 2000 + i; // 일반 카드와 구별되는 ID
+            cards.push(new Card(bombId, 0, 0, 'assets/images/cards/bomb.png', CARD_TYPE.BOMB));
+        }
+    }
+
+    // 4. Fisher-Yates 알고리즘으로 섞기
+    shuffleArray(cards);
+
+    // 5. 그리드 레이아웃 계산하여 x, y 좌표 할당
+    const gridCols = difficulty.gridCols;
+    const gridRows = difficulty.gridRows;
+    const cardWidth = CARD_CONFIG.width;
+    const cardHeight = CARD_CONFIG.height;
+    const margin = CARD_CONFIG.margin;
+
+    // 그리드 전체 크기 계산
+    const gridWidth = gridCols * (cardWidth + margin) - margin;
+    const gridHeight = gridRows * (cardHeight + margin) - margin;
+
+    // 그리드 시작 위치 (중앙 정렬)
+    const startX = (CANVAS_CONFIG.width - gridWidth) / 2;
+    const startY = (CANVAS_CONFIG.height - gridHeight) / 2 + 50; // 상단 여백
+
+    // 각 카드에 위치 할당
+    cards.forEach((card, index) => {
+        const col = index % gridCols;
+        const row = Math.floor(index / gridCols);
+        card.x = startX + col * (cardWidth + margin);
+        card.y = startY + row * (cardHeight + margin);
+    });
 
     return cards;
 }

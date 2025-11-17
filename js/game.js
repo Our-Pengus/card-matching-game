@@ -11,8 +11,7 @@ class GameManager {
 
         // 카드 관련
         this.cards = [];
-        this.firstCard = null;
-        this.secondCard = null;
+        this.flippedCards = [];  // 현재 뒤집힌 카드들 (2장 또는 3장)
         this.canFlip = true;  // 카드 뒤집기 가능 여부
         this.matchedPairs = 0;
 
@@ -25,11 +24,14 @@ class GameManager {
         // 통계
         this.attempts = 0;  // 시도 횟수
         this.combo = 0;     // 연속 성공 콤보
+
+        // 특수 효과
+        this.shuffleEffectActive = false;  // 카드 섞임 효과
+        this.bonusCardsRevealed = false;   // 보너스 카드 공개 여부
     }
 
     /**
      * 게임 초기화
-     * TODO (방채민): 난이도 선택 후 호출
      */
     initGame(difficulty) {
         this.selectedDifficulty = difficulty;
@@ -39,8 +41,7 @@ class GameManager {
         this.cards = createCardDeck(difficulty.pairs, difficulty);
 
         // 변수 초기화
-        this.firstCard = null;
-        this.secondCard = null;
+        this.flippedCards = [];
         this.canFlip = true;
         this.matchedPairs = 0;
 
@@ -51,11 +52,20 @@ class GameManager {
 
         this.attempts = 0;
         this.combo = 0;
+
+        this.shuffleEffectActive = false;
+        this.bonusCardsRevealed = false;
+
+        // 보너스 카드 자동 공개 타이머 (하, 중 난이도)
+        if (difficulty.specialCards && difficulty.specialCards.bonusPairs) {
+            setTimeout(() => {
+                this.revealBonusCards();
+            }, SPECIAL_CARD_CONFIG.BONUS.autoRevealDelay);
+        }
     }
 
     /**
      * 카드 클릭 처리
-     * TODO (방채민): 윤현준의 mouseClicked()에서 호출
      */
     handleCardClick(card) {
         // 클릭 불가 조건
@@ -63,18 +73,22 @@ class GameManager {
         if (card.isMatched) return;
         if (card.isFlipped) return;
 
-        // 카드 뒤집기
-        card.flip();
-
-        // 첫 번째 카드 선택
-        if (!this.firstCard) {
-            this.firstCard = card;
+        // 폭탄 카드 클릭 처리
+        if (card.isBomb()) {
+            card.flip();
+            this.handleBombCard(card);
             return;
         }
 
-        // 두 번째 카드 선택
-        if (!this.secondCard && card !== this.firstCard) {
-            this.secondCard = card;
+        // 카드 뒤집기
+        card.flip();
+        this.flippedCards.push(card);
+
+        // 매칭 규칙 확인 (2장 또는 3장)
+        const matchingRule = this.selectedDifficulty.matchingRule || 2;
+
+        // 필요한 카드 수만큼 뒤집혔을 때 비교
+        if (this.flippedCards.length === matchingRule) {
             this.canFlip = false;  // 비교 중에는 클릭 금지
             this.attempts++;
 
@@ -87,12 +101,13 @@ class GameManager {
 
     /**
      * 카드 짝 맞추기 비교
-     * TODO (방채민): 핵심 로직 구현
      */
     checkMatch() {
-        if (!this.firstCard || !this.secondCard) return;
+        if (this.flippedCards.length === 0) return;
 
-        const isMatch = this.firstCard.id === this.secondCard.id;
+        // 모든 뒤집힌 카드의 ID가 같은지 확인
+        const firstId = this.flippedCards[0].id;
+        const isMatch = this.flippedCards.every(card => card.id === firstId);
 
         if (isMatch) {
             // ✅ 성공
@@ -103,21 +118,16 @@ class GameManager {
         }
 
         // 카드 참조 초기화
-        this.firstCard = null;
-        this.secondCard = null;
+        this.flippedCards = [];
         this.canFlip = true;
     }
 
     /**
      * 짝 맞추기 성공
-     * TODO (방채민):
-     * - 점수 계산 (기본 점수 + 콤보 보너스)
-     * - 효과음 재생 (손아영)
-     * - 성공 애니메이션 트리거 (윤현준)
      */
     handleMatch() {
-        this.firstCard.setMatched();
-        this.secondCard.setMatched();
+        // 모든 매칭된 카드를 matched 상태로 설정
+        this.flippedCards.forEach(card => card.setMatched());
 
         this.matchedPairs++;
         this.combo++;
@@ -125,23 +135,24 @@ class GameManager {
         // 점수 계산
         const basePoints = this.selectedDifficulty.pointsPerMatch;
         const comboBonus = this.combo > 1 ? (this.combo - 1) * 5 : 0;
-        this.score += basePoints + comboBonus;
+
+        // 보너스 카드 추가 점수
+        const bonusPoints = this.flippedCards[0].isBonus() ? SPECIAL_CARD_CONFIG.BONUS.pointsBonus : 0;
+
+        this.score += basePoints + comboBonus + bonusPoints;
 
         // TODO (손아영): 효과음 재생
-        // playSound(SOUNDS.match);
+        // playSound(this.flippedCards[0].isBonus() ? SOUNDS.bonus : SOUNDS.match);
 
         // 게임 클리어 체크
-        if (this.matchedPairs === this.selectedDifficulty.pairs) {
+        const totalPairs = this.calculateTotalPairs();
+        if (this.matchedPairs === totalPairs) {
             this.gameComplete();
         }
     }
 
     /**
      * 짝 맞추기 실패
-     * TODO (방채민):
-     * - 시간 페널티 적용
-     * - 효과음 재생
-     * - 1초 후 카드 뒤집기
      */
     handleMismatch() {
         this.combo = 0;  // 콤보 초기화
@@ -155,12 +166,11 @@ class GameManager {
 
         // 1초 후 카드 뒤집기
         setTimeout(() => {
-            if (this.firstCard && !this.firstCard.isMatched) {
-                this.firstCard.flip();
-            }
-            if (this.secondCard && !this.secondCard.isMatched) {
-                this.secondCard.flip();
-            }
+            this.flippedCards.forEach(card => {
+                if (!card.isMatched) {
+                    card.flip();
+                }
+            });
         }, CARD_CONFIG.mismatchDelay);
     }
 
@@ -232,7 +242,6 @@ class GameManager {
 
     /**
      * 게임 통계 반환
-     * TODO (손아영): 결과 화면에서 사용
      */
     getStats() {
         return {
@@ -241,6 +250,104 @@ class GameManager {
             attempts: this.attempts,
             accuracy: this.attempts > 0 ? (this.matchedPairs / this.attempts * 100).toFixed(1) : 0
         };
+    }
+
+    /**
+     * 폭탄 카드 처리
+     */
+    handleBombCard(bombCard) {
+        const specialCards = this.selectedDifficulty.specialCards || {};
+
+        // 시간 페널티
+        this.timeRemaining -= SPECIAL_CARD_CONFIG.BOMB.timePenalty;
+        if (this.timeRemaining < 0) this.timeRemaining = 0;
+
+        // TODO (손아영): 폭탄 효과음 재생
+        // playSound(SOUNDS.bomb);
+
+        // 카드 섞임 효과 (상, 재앙, 지옥 난이도)
+        if (specialCards.shuffle || SPECIAL_CARD_CONFIG.BOMB.shuffleCards) {
+            this.shuffleUnmatchedCards();
+        }
+
+        // 즉사 메커니즘 (지옥 난이도)
+        if (specialCards.instantDeath) {
+            this.gameOver();
+        } else {
+            // 폭탄 카드 제거 (즉사가 아닌 경우)
+            bombCard.setMatched();
+            setTimeout(() => {
+                bombCard.flip();
+            }, 1000);
+        }
+
+        this.canFlip = true;
+    }
+
+    /**
+     * 보너스 카드 자동 공개
+     */
+    revealBonusCards() {
+        if (this.bonusCardsRevealed) return;
+
+        this.bonusCardsRevealed = true;
+        this.cards.forEach(card => {
+            if (card.isBonus() && !card.isMatched) {
+                card.flip();
+                // 2초 후 다시 뒤집기
+                setTimeout(() => {
+                    if (!card.isMatched) {
+                        card.flip();
+                    }
+                }, 2000);
+            }
+        });
+
+        // TODO (손아영): 보너스 효과음 재생
+        // playSound(SOUNDS.bonus);
+    }
+
+    /**
+     * 매칭되지 않은 카드 섞기 (폭탄 효과)
+     */
+    shuffleUnmatchedCards() {
+        if (this.shuffleEffectActive) return;
+
+        this.shuffleEffectActive = true;
+
+        // 매칭되지 않은 카드만 필터링
+        const unmatchedCards = this.cards.filter(card => !card.isMatched);
+
+        // 카드 위치만 섞기
+        const positions = unmatchedCards.map(card => ({ x: card.x, y: card.y }));
+        shuffleArray(positions);
+
+        unmatchedCards.forEach((card, index) => {
+            card.x = positions[index].x;
+            card.y = positions[index].y;
+        });
+
+        // TODO (손아영): 섞임 효과음 재생
+        // playSound(SOUNDS.shuffle);
+
+        // 3초 후 다시 섞기 가능
+        setTimeout(() => {
+            this.shuffleEffectActive = false;
+        }, 3000);
+    }
+
+    /**
+     * 전체 페어 수 계산 (보너스 카드 포함)
+     */
+    calculateTotalPairs() {
+        let totalPairs = this.selectedDifficulty.pairs;
+        const specialCards = this.selectedDifficulty.specialCards || {};
+
+        if (specialCards.bonusPairs) {
+            totalPairs += specialCards.bonusPairs;
+        }
+
+        return totalPairs;
     }
 }
 
