@@ -3,16 +3,27 @@
    담당: 방채민 (난이도 옵션 정의, 점수 시스템 설계)
    ==================================== */
 
+// 카드 타입 정의
+const CARD_TYPE = {
+    NORMAL: 'normal',           // 일반 카드 (2장 짝)
+    ANSWER_PAIR: 'answer_pair', // 정답 짝 카드 (2장 또는 3장)
+    BOMB: 'bomb'                // 폭탄 카드
+};
+
 // 게임 난이도 설정
 const DIFFICULTY = {
     EASY: {
         name: '하',
-        pairs: 6,           // 6쌍 = 12장
-        timeLimit: 180,     // 3분
+        pairs: 4,               // 4쌍 = 8장
+        answerPairs: 1,         // 정답 짝 세트 개수 (1개)
+        answerPairCount: 2,      // 정답 짝 카드 매칭 개수 (2장)
+        bombCount: 0,            // 폭탄 카드 개수
+        totalCards: 8,           // 총 카드 개수 (4쌍 * 2 = 8장)
+        timeLimit: 180,         // 3분
         gridCols: 4,
-        gridRows: 3,
+        gridRows: 2,
         pointsPerMatch: 10,
-        timePenalty: 5,     // 실패 시 5초 감점
+        timePenalty: 5,         // 실패 시 5초 감점
         color: {
             bg: '#E8F5E9',
             card: '#81C784',
@@ -21,8 +32,12 @@ const DIFFICULTY = {
     },
     MEDIUM: {
         name: '중',
-        pairs: 8,           // 8쌍 = 16장
-        timeLimit: 120,     // 2분
+        pairs: 8,               // 8쌍 = 16장
+        answerPairs: 1,         // 정답 짝 세트 개수 (1개)
+        answerPairCount: 2,      // 정답 짝 카드 매칭 개수 (2장)
+        bombCount: 0,            // 폭탄 카드 개수
+        totalCards: 16,          // 총 카드 개수 (8쌍 * 2 = 16장)
+        timeLimit: 120,         // 2분
         gridCols: 4,
         gridRows: 4,
         pointsPerMatch: 15,
@@ -35,8 +50,12 @@ const DIFFICULTY = {
     },
     HARD: {
         name: '상',
-        pairs: 10,          // 10쌍 = 20장
-        timeLimit: 90,      // 1.5분
+        pairs: 15,               // 15쌍 = 30장
+        answerPairs: 1,          // 정답 짝 세트 개수 (1개)
+        answerPairCount: 2,       // 정답 짝 카드 매칭 개수 (2장)
+        bombCount: 2,            // 폭탄 카드 2장
+        totalCards: 32,          // 총 카드 개수 (15쌍 * 2 + 정답짝 2 + 폭탄 2 = 34장, 실제로는 32장)
+        timeLimit: 90,          // 1.5분
         gridCols: 5,
         gridRows: 4,
         pointsPerMatch: 20,
@@ -49,12 +68,19 @@ const DIFFICULTY = {
     },
     HELL: {
         name: '지옥',
-        pairs: 15,          // 15쌍 = 30장
-        timeLimit: 60,      // 1분
+        pairs: 22,               // 22쌍 = 44장
+        answerPairs: 1,          // 정답 짝 세트 개수 (1개)
+        answerPairCount: 3,       // 정답 짝 카드 매칭 개수 (3장)
+        bombCount: 4,            // 폭탄 카드 4장
+        totalCards: 48,          // 총 카드 개수 (22쌍 * 2 + 정답짝 3 + 폭탄 4 = 51장, 실제로는 48장)
+        timeLimit: 60,           // 1분 (엄격한 제한 시간)
         gridCols: 6,
         gridRows: 5,
         pointsPerMatch: 30,
         timePenalty: 20,
+        bombTimePenalty: 10,     // 폭탄 클릭 시 시간 감소 (초)
+        bombShuffleChance: 0.03, // 폭탄 클릭 시 카드 섞임 확률 (3%)
+        bombInstantDeathChance: 0.01, // 폭탄 클릭 시 즉사 확률 (1%)
         color: {
             bg: '#212121',
             card: '#D32F2F',
