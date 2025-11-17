@@ -29,6 +29,7 @@ class GameManager {
 
         // 타이머 관련
         this.timerInterval = null;
+        this.previewTimeout = null;
     }
 
     // ========== 게임 초기화 ==========
@@ -52,13 +53,58 @@ class GameManager {
         const cards = this.cardManager.createDeck(difficulty, theme);
         this.state.setCards(cards);
 
-        // 게임 시작
-        this.state.startGame();
+        // 미리 보기 처리
+        const previewTime = difficulty.previewTime || 0;
 
-        // 타이머 시작
-        this._startTimer();
+        if (previewTime > 0) {
+            // PREVIEW 상태로 설정
+            this.state.setPhase(GAME_STATE.PREVIEW);
 
-        console.log(`Game started: ${difficulty.name} difficulty, ${cards.length} cards`);
+            // 모든 카드 앞면으로 표시
+            cards.forEach(card => card.setFlipped(true));
+
+            // previewTime 후 게임 시작
+            this.previewTimeout = setTimeout(() => {
+                this._startPlaying();
+            }, previewTime);
+
+            console.log(`Game preview started: ${difficulty.name} difficulty, ${previewTime}ms preview`);
+        } else {
+            // 미리 보기 없음 - 즉시 게임 시작
+            this.state.startGame();
+            this._startTimer();
+            console.log(`Game started: ${difficulty.name} difficulty, ${cards.length} cards (no preview)`);
+        }
+    }
+
+    /**
+     * 미리 보기 종료 후 게임 시작
+     *
+     * @private
+     */
+    _startPlaying() {
+        const animDuration = 600;  // 애니메이션 시간 (ms)
+
+        // 모든 카드에 뒤집기 애니메이션 시작
+        this.state.cards.forEach(card => {
+            if (!card.isMatched) {
+                // cardRenderer는 main.js에서 전역으로 선언됨
+                if (typeof cardRenderer !== 'undefined') {
+                    cardRenderer.animateFlip(card, animDuration, false);  // false = 뒷면으로
+                }
+            }
+        });
+
+        // 애니메이션 완료 후 게임 시작
+        setTimeout(() => {
+            // PLAYING 상태로 전환
+            this.state.startGame();
+
+            // 타이머 시작
+            this._startTimer();
+
+            console.log('Preview ended, game playing started');
+        }, animDuration);
     }
 
     /**
@@ -66,6 +112,7 @@ class GameManager {
      */
     resetGame() {
         this._stopTimer();
+        this._clearPreviewTimeout();
         this.cardManager.resetAllCards(this.state.cards);
         this.state.reset();
     }
@@ -80,6 +127,11 @@ class GameManager {
      * @returns {boolean} 클릭이 처리되었는지 여부
      */
     handleClick(x, y) {
+        // PREVIEW 상태에서는 클릭 무시
+        if (this.state.isPreview()) {
+            return false;
+        }
+
         if (!this.state.isPlaying()) {
             return false;
         }
@@ -108,14 +160,20 @@ class GameManager {
             return false;
         }
 
-        // 카드 뒤집기
-        try {
-            card.flip();
-            this._notifyCardFlip(card);
-        } catch (error) {
-            console.error('Failed to flip card:', error);
-            return false;
+        // 카드 뒤집기 애니메이션
+        if (typeof cardRenderer !== 'undefined') {
+            cardRenderer.animateFlip(card, 300, true);  // true = 앞면으로, 300ms
+        } else {
+            // fallback: 애니메이션 없이 즉시 뒤집기
+            try {
+                card.flip();
+            } catch (error) {
+                console.error('Failed to flip card:', error);
+                return false;
+            }
         }
+
+        this._notifyCardFlip(card);
 
         // 첫 번째 카드 선택
         if (!this.state.firstCard) {
@@ -214,13 +272,26 @@ class GameManager {
         this._notifyMismatch(card1, card2, timePenalty);
         this._notifyTimeUpdate();
 
-        // 카드 뒤집기 (지연)
+        // 카드 뒤집기 애니메이션 (지연)
+        const flipAnimDuration = 300;
         setTimeout(() => {
-            if (!card1.isMatched) card1.flip();
-            if (!card2.isMatched) card2.flip();
+            // 애니메이션으로 뒷면으로 뒤집기
+            if (!card1.isMatched && typeof cardRenderer !== 'undefined') {
+                cardRenderer.animateFlip(card1, flipAnimDuration, false);
+            } else if (!card1.isMatched) {
+                card1.flip();  // fallback
+            }
 
-            // 선택 초기화
-            this.state.clearSelection();
+            if (!card2.isMatched && typeof cardRenderer !== 'undefined') {
+                cardRenderer.animateFlip(card2, flipAnimDuration, false);
+            } else if (!card2.isMatched) {
+                card2.flip();  // fallback
+            }
+
+            // 애니메이션 완료 후 선택 초기화
+            setTimeout(() => {
+                this.state.clearSelection();
+            }, flipAnimDuration);
         }, CARD_CONFIG.mismatchDelay || 1000);
     }
 
@@ -260,6 +331,18 @@ class GameManager {
         }
     }
 
+    /**
+     * 미리 보기 타이머 정리
+     *
+     * @private
+     */
+    _clearPreviewTimeout() {
+        if (this.previewTimeout) {
+            clearTimeout(this.previewTimeout);
+            this.previewTimeout = null;
+        }
+    }
+
     // ========== 게임 종료 ==========
 
     /**
@@ -269,6 +352,7 @@ class GameManager {
      */
     _completeGame() {
         this._stopTimer();
+        this._clearPreviewTimeout();
         this.state.endGameWin();
         this._notifyGameComplete();
 
@@ -282,6 +366,7 @@ class GameManager {
      */
     _gameOver() {
         this._stopTimer();
+        this._clearPreviewTimeout();
         this.state.endGameLose();
         this._notifyGameOver();
 

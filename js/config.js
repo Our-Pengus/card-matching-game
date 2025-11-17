@@ -13,6 +13,7 @@ const DIFFICULTY = {
         gridRows: 2,
         pointsPerMatch: 10,
         timePenalty: 5,     // 실패 시 5초 감점
+        previewTime: 5000,  // 5초 미리 보기
         specialCards: {
             bonusPairs: 2   // 정답 짝 카드 2장
         },
@@ -30,6 +31,7 @@ const DIFFICULTY = {
         gridRows: 4,
         pointsPerMatch: 15,
         timePenalty: 10,
+        previewTime: 7000,  // 7초 미리 보기
         specialCards: {
             bonusPairs: 2   // 정답 짝 카드 2장
         },
@@ -47,6 +49,7 @@ const DIFFICULTY = {
         gridRows: 4,
         pointsPerMatch: 20,
         timePenalty: 15,
+        previewTime: 0,     // 미리 보기 없음
         specialCards: {
             bombs: 2        // 폭탄 카드 2장
         },
@@ -65,6 +68,7 @@ const DIFFICULTY = {
         pointsPerMatch: 25,
         timePenalty: 18,
         matchingRule: 3,    // 3장 매칭
+        previewTime: 0,     // 미리 보기 없음
         specialCards: {
             bombs: 2        // 폭탄 카드 2장
         },
@@ -82,6 +86,7 @@ const DIFFICULTY = {
         gridRows: 6,
         pointsPerMatch: 30,
         timePenalty: 20,
+        previewTime: 0,     // 미리 보기 없음
         specialCards: {
             bombs: 4,       // 폭탄 카드 4장
             shuffle: true,  // 카드 섞임 효과
@@ -118,6 +123,7 @@ const CARD_CONFIG = {
 const GAME_STATE = {
     START: 'start',         // 시작 화면
     DIFFICULTY: 'difficulty', // 난이도 선택
+    PREVIEW: 'preview',     // 카드 미리 보기
     PLAYING: 'playing',     // 게임 중
     RESULT: 'result'        // 결과 화면
 };

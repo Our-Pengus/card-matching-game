@@ -58,6 +58,9 @@ class GameState {
     isPlaying() { return this._phase === GAME_STATE.PLAYING; }
 
     /** @returns {boolean} */
+    isPreview() { return this._phase === GAME_STATE.PREVIEW; }
+
+    /** @returns {boolean} */
     isGameOver() { return this._phase === GAME_STATE.RESULT; }
 
     // ========== Difficulty ==========
