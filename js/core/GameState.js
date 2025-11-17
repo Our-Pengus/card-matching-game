@@ -24,6 +24,7 @@ class GameState {
         this._cards = config.cards || [];
         this._firstCard = null;
         this._secondCard = null;
+        this._thirdCard = null;  // 3장 매칭용 (지옥 난이도)
         this._canFlip = true;
         this._matchedPairs = 0;
 
@@ -67,7 +68,19 @@ class GameState {
 
     /** @returns {number} 전체 카드 쌍 개수 */
     get totalPairs() {
-        return this._difficulty ? this._difficulty.pairs : 0;
+        if (!this._difficulty) return 0;
+        
+        // 일반 카드 쌍 개수
+        let total = this._difficulty.pairs;
+        
+        // 정답 짝 카드 세트 개수 추가 (1세트 = 1쌍으로 계산)
+        if (this._difficulty.answerPairs > 0) {
+            total += this._difficulty.answerPairs;
+        }
+        
+        // 폭탄 카드는 매칭되지 않으므로 제외
+        
+        return total;
     }
 
     // ========== Cards ==========
@@ -81,8 +94,23 @@ class GameState {
     /** @returns {Card|null} */
     get secondCard() { return this._secondCard; }
 
+    /** @returns {Card|null} */
+    get thirdCard() { return this._thirdCard; }
+
     /** @returns {boolean} */
     get canFlip() { return this._canFlip; }
+
+    /**
+     * 현재 선택된 카드 개수
+     * @returns {number}
+     */
+    getSelectedCardCount() {
+        let count = 0;
+        if (this._firstCard) count++;
+        if (this._secondCard) count++;
+        if (this._thirdCard) count++;
+        return count;
+    }
 
     /** @returns {number} */
     get matchedPairs() { return this._matchedPairs; }
@@ -94,7 +122,26 @@ class GameState {
 
     /** @returns {boolean} */
     isAllMatched() {
-        return this._matchedPairs === this.totalPairs;
+        if (!this._difficulty) return false;
+        
+        // 모든 매칭 가능한 카드가 매칭되었는지 확인
+        const matchedNormalPairs = this._matchedPairs;
+        const totalNormalPairs = this._difficulty.pairs;
+        
+        // 일반 카드가 모두 매칭되었는지 확인
+        if (matchedNormalPairs < totalNormalPairs) {
+            return false;
+        }
+        
+        // 정답 짝 카드가 모두 매칭되었는지 확인
+        if (this._difficulty.answerPairs > 0) {
+            const answerCards = this._cards.filter(card => card.isAnswerPair && !card.isMatched);
+            if (answerCards.length > 0) {
+                return false;
+            }
+        }
+        
+        return true;
     }
 
     // ========== Score ==========
@@ -237,6 +284,27 @@ class GameState {
      */
     selectSecondCard(card) {
         this._secondCard = card;
+        // 3장 매칭이 필요한 경우 (지옥 난이도에서 정답 짝 카드 2장 선택)
+        // 첫 번째와 두 번째 카드가 모두 정답 짝 카드이고, 3장 매칭이 필요한 경우에만 플립 허용
+        const needsThreeMatch = this._difficulty && 
+                               this._difficulty.answerPairCount === 3 &&
+                               this._firstCard && 
+                               this._firstCard.isAnswerPair &&
+                               card.isAnswerPair;
+        
+        if (!needsThreeMatch) {
+            // 일반 카드 2장 매칭이거나 정답 짝 카드 2장 매칭인 경우 플립 금지
+            this._canFlip = false;
+        }
+        // needsThreeMatch가 true이면 _canFlip을 true로 유지 (세 번째 카드 선택 허용)
+    }
+
+    /**
+     * 세 번째 카드 선택 (3장 매칭용)
+     * @param {Card} card
+     */
+    selectThirdCard(card) {
+        this._thirdCard = card;
         this._canFlip = false;
     }
 
@@ -246,6 +314,7 @@ class GameState {
     clearSelection() {
         this._firstCard = null;
         this._secondCard = null;
+        this._thirdCard = null;
         this._canFlip = true;
     }
 
@@ -324,6 +393,7 @@ class GameState {
         this._cards = [];
         this._firstCard = null;
         this._secondCard = null;
+        this._thirdCard = null;
         this._canFlip = true;
         this._matchedPairs = 0;
         this._score = 0;
