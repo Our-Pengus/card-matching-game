@@ -93,19 +93,45 @@ class GameScreen {
         push();
         textAlign(CENTER, CENTER);
 
+        // ========== 카운트다운 변수 설정 ==========
+        let fontSize = this.ui.fonts.ui; // 기본 크기
+        let displayColor = this.ui.colors.text.primary; // 기본 색상
+        const isCountingDown = timeRemaining <= 10 && timeRemaining > 0;
+        // ========================================
+
+        // 10초 이하 카운트다운 효과
+        if (isCountingDown) {
+            // 폰트 크기 증가
+            fontSize = this.ui.fonts.title * 0.8; // 38.4px (기본 48px의 80%)
+
+            // 깜빡이는 효과를 위해 시간을 이용해 색상 전환 (0.5초마다)
+            const flashRate = floor(millis() / 500) % 2; 
+
+            if (flashRate === 0) { 
+                // 0, 1, 2, ... 초일 때: 밝은 빨간색 (경고)
+                displayColor = color(this.ui.colors.button.hell); 
+            } else {
+                // 0.5, 1.5, 2.5, ... 초일 때: 흰색 (배경)
+                displayColor = color(255, 255, 255); 
+            }
+        }
+
         // 시간 배경 (둥근 박스)
         const boxWidth = 140;
         const boxHeight = 50;
 
+        // 배경 테두리 색상도 카운트다운 상태에 따라 변경
+        const strokeColor = isCountingDown ? displayColor : this.ui.colors.text.primary;
+
         fill(255, 255, 255);
-        stroke(this.ui.colors.text.primary);
+        stroke(strokeColor); // 동적 색상 적용
         strokeWeight(3);
         rect(x - boxWidth / 2, y - boxHeight / 2, boxWidth, boxHeight, 25);
 
         // 시간 텍스트
         noStroke();
-        fill(this.ui.colors.text.primary);
-        textSize(this.ui.fonts.ui);
+        fill(displayColor); // 동적 색상 적용
+        textSize(fontSize); // 동적 크기 적용
         textStyle(BOLD);
 
         const minutes = floor(timeRemaining / 60);

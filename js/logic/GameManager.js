@@ -35,6 +35,7 @@ class GameManager extends EventEmitter {
         // 타이머 관련
         this.timerInterval = null;
         this.previewTimeout = null;
+        this._isCountingDown = false;
 
         // 리소스 정리 등록
         if (this.options.autoCleanup) {
@@ -389,6 +390,8 @@ class GameManager extends EventEmitter {
      */
     _startTimer() {
         this._stopTimer();
+        // 카운트다운 상태 초기화
+        this._isCountingDown = false;
 
         this.timerInterval = setInterval(() => {
             const elapsed = this.state.getElapsedSeconds();
@@ -396,6 +399,18 @@ class GameManager extends EventEmitter {
 
             this.state.updateTime(remaining);
             this.emit('timer:update', { remaining, elapsed });
+
+            // ========== 카운트다운 로직 시작 ==========
+            const countdownThreshold = 10; // 10초
+
+            if (remaining <= countdownThreshold && remaining > 0) {
+            // 카운트다운 시작 이벤트 (한 번만 발생)
+            if (!this._isCountingDown) {
+                this._isCountingDown = true;
+                this.emit('timer:countdown:start', { remaining });
+            }
+        }
+        // ========== 카운트다운 로직 끝 ==========
 
             if (remaining <= 0) {
                 this._gameOver('time');

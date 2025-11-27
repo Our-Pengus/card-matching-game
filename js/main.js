@@ -374,7 +374,14 @@ function setupGameCallbacks() {
         console.error(`[GameManager Error] ${method}:`, error);
         uiRenderer.showMessage('오류가 발생했습니다. 게임을 다시 시작해주세요.', 3000, 'error');
     });
-}
+
+    // 카운트다운
+    gameManager.on('timer:countdown:start', (data) => {
+        // 10초가 되었을 때 한 번 팝업 메시지 표시
+        uiRenderer.showMessage('종료 10초 전🚨', 2000, 'error'); 
+    });
+
+    }
 
 // ========== 디버그 함수 (브라우저 콘솔에서 사용) ==========
 
