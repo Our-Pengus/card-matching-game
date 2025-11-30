@@ -13,7 +13,7 @@ const DIFFICULTY = {
         gridRows: 2,
         pointsPerMatch: 10,
         timePenalty: 5,     // 실패 시 5초 감점
-        previewTime: 5000,  // 5초 미리 보기
+        previewTime: 2500,  // 2.5초 미리 보기
         hearts: 5,          // 하트 5개
         specialCards: {
             bonusPairs: 2   // 정답 짝 카드 2장
@@ -32,7 +32,7 @@ const DIFFICULTY = {
         gridRows: 4,
         pointsPerMatch: 15,
         timePenalty: 10,
-        previewTime: 7000,  // 7초 미리 보기
+        previewTime: 4000,  // 4초 미리 보기
         hearts: 10,         // 하트 10개
         specialCards: {
             bonusPairs: 2   // 정답 짝 카드 2장
