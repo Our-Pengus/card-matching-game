@@ -267,29 +267,13 @@ class UIRenderer {
         // 메인 박스
         rect(x, y, w, h, 20);
 
-        // 꼬리 (삼각형) - 외곽선 포함
-        // 꼬리는 박스 왼쪽 아래에서 왼쪽으로 나옴
-        const tailX = x + 20;
-        const tailY = y + h;
-
-        // 꼬리 외곽선
-        stroke(this.colors.text.primary);
-        strokeWeight(3);
-        line(tailX - tailSize, tailY + tailSize, tailX, tailY);
-        line(tailX - tailSize, tailY + tailSize, tailX + tailSize, tailY);
-
-        // 꼬리 채우기
+        // 꼬리 (삼각형)
         noStroke();
-        fill(this.colors.text.white);
         triangle(
-            tailX - tailSize, tailY + tailSize,
-            tailX, tailY - 2,
-            tailX + tailSize, tailY - 2
+            x - tailSize, y + h / 2 + 10,
+            x, y + h / 2,
+            x + tailSize, y + h / 2 + 10
         );
-
-        // 연결부 외곽선 덮기
-        fill(this.colors.text.white);
-        rect(tailX - tailSize + 2, tailY - 4, tailSize * 2 - 4, 6);
 
         // 텍스트
         fill(this.colors.text.primary);
