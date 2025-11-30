@@ -58,6 +58,11 @@ class Card {
     /** @returns {number} */
     get flipCount() { return this._flipCount; }
 
+    /** @returns {boolean} 히든 카드 여부 */
+    get isHiddenCard() {
+        return this._id === HIDDEN_CARD.cardId;
+    }
+
     // ========== 비즈니스 로직 ==========
 
     /**

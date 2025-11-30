@@ -20,16 +20,22 @@ class SoundManager {
         // 로드된 사운드 버퍼
         this.sounds = {};
 
-        // 사운드 경로 매핑 (현재 미사용 - 향후 확장용)
+        // 사운드 경로 매핑
         this.soundPaths = {
             click: null,
             match: null,
             mismatch: null,
-            complete: null
+            complete: null,
+            // 히든 카드 전용 효과음
+            hidden_click: 'assets/sounds/hidden_click.wav',
+            hidden_match: 'assets/sounds/hidden_match.wav'
         };
 
         // AudioContext 초기화
         this._initAudioContext();
+
+        // 히든 카드 효과음 로드
+        this._loadHiddenSounds();
     }
 
     /**
@@ -44,6 +50,17 @@ class SoundManager {
         } catch (e) {
             console.warn('Web Audio API not supported:', e);
             this.enabled = false;
+        }
+    }
+
+    /**
+     * 히든 카드 효과음 로드
+     * @private
+     */
+    async _loadHiddenSounds() {
+        if (HIDDEN_CARD && HIDDEN_CARD.enabled) {
+            await this.loadSound('hidden_click', this.soundPaths.hidden_click);
+            await this.loadSound('hidden_match', this.soundPaths.hidden_match);
         }
     }
 

@@ -151,5 +151,14 @@ const GAME_STATE = {
 // FUTURE: BONUS 카드 - 정답 짝 카드 (자동 매칭)
 // FUTURE: BOMB 카드 - 폭탄 카드 (페널티)
 const CARD_TYPE = {
-    NORMAL: 'normal'        // 일반 카드 (현재 유일하게 구현된 타입)
+    NORMAL: 'normal',       // 일반 카드
+    HIDDEN: 'hidden'        // 히든 카드 (특수 효과)
+};
+
+// 히든 카드 설정
+const HIDDEN_CARD = {
+    enabled: true,
+    cardId: 99,             // 특수 ID
+    imagePath: 'assets/images/cards/hidden.jpg',
+    revealDuration: 1000    // 전체 카드 공개 시간 (ms)
 };

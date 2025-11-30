@@ -55,6 +55,25 @@ class CardRenderer {
             hoverSpeed: 0.2,        // 호버 애니메이션 속도
             iconScale: 0.5          // 아이콘 크기 비율
         };
+
+        // 히든 카드 이미지 캐시
+        this.hiddenCardImage = null;
+        this._loadHiddenCardImage();
+    }
+
+    /**
+     * 히든 카드 이미지 로드
+     * @private
+     */
+    _loadHiddenCardImage() {
+        if (HIDDEN_CARD && HIDDEN_CARD.enabled) {
+            loadImage(HIDDEN_CARD.imagePath, (img) => {
+                this.hiddenCardImage = img;
+                console.log('Hidden card image loaded');
+            }, (err) => {
+                console.warn('Failed to load hidden card image:', err);
+            });
+        }
     }
 
     // ========================================
@@ -121,6 +140,12 @@ class CardRenderer {
      * 카드 앞면 (아이콘이 보임)
      */
     _drawFrontFace(card) {
+        // 히든 카드인 경우 별도 렌더링
+        if (card.isHiddenCard) {
+            this._drawHiddenCardFace(card);
+            return;
+        }
+
         rectMode(CENTER);
 
         // 그림자
@@ -152,6 +177,50 @@ class CardRenderer {
         textAlign(CENTER, CENTER);
         textSize(this.config.width * this.style.iconScale);
         text(icon, 0, 0);
+
+        // 매칭 완료 시 오버레이
+        if (card.isMatched) {
+            fill(this.colors.matched);
+            noStroke();
+            rect(0, 0, this.config.width, this.config.height, this.style.borderRadius);
+
+            // 체크 마크
+            fill(255, 255, 255);
+            textSize(this.config.width * 0.3);
+            text('✓', 0, 0);
+        }
+    }
+
+    /**
+     * 히든 카드 앞면 렌더링
+     * @private
+     */
+    _drawHiddenCardFace(card) {
+        rectMode(CENTER);
+        imageMode(CENTER);
+
+        // 그림자
+        this._drawCardShadow();
+
+        // 카드 배경 (금색 계열)
+        fill('#FFD700');
+        stroke(this.colors.border);
+        strokeWeight(this.style.borderWidth);
+        rect(0, 0, this.config.width, this.config.height, this.style.borderRadius);
+
+        // 히든 카드 이미지
+        if (this.hiddenCardImage) {
+            // 이미지를 카드 크기에 맞게 그리기
+            const imgSize = this.config.width * 0.8;
+            image(this.hiddenCardImage, 0, 0, imgSize, imgSize);
+        } else {
+            // 이미지 로드 전 대체 아이콘
+            fill(255);
+            noStroke();
+            textAlign(CENTER, CENTER);
+            textSize(this.config.width * this.style.iconScale);
+            text('👤', 0, 0);
+        }
 
         // 매칭 완료 시 오버레이
         if (card.isMatched) {

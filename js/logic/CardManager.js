@@ -60,13 +60,28 @@ class CardManager {
         const cards = [];
         const imagePaths = this._getImagePaths(theme, pairs);
 
-        for (let id = 0; id < pairs; id++) {
+        // 히든 카드 활성화 시 일반 카드 쌍 수를 1개 줄임
+        const normalPairs = HIDDEN_CARD.enabled ? pairs - 1 : pairs;
+
+        for (let id = 0; id < normalPairs; id++) {
             const imagePath = imagePaths[id] || `assets/images/cards/placeholder_${id}.png`;
 
             // 같은 ID를 가진 카드 2개 생성 (짝)
             for (let j = 0; j < 2; j++) {
                 const card = new Card(id, 0, 0, imagePath);
                 cards.push(card);
+            }
+        }
+
+        // 히든 카드 1쌍 추가
+        if (HIDDEN_CARD.enabled) {
+            for (let j = 0; j < 2; j++) {
+                const hiddenCard = new Card(
+                    HIDDEN_CARD.cardId,
+                    0, 0,
+                    HIDDEN_CARD.imagePath
+                );
+                cards.push(hiddenCard);
             }
         }
 

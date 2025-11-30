@@ -83,16 +83,46 @@ function draw() {
  * 게임 플레이 화면 그리기
  */
 function drawGamePlay() {
+    // 화면 흔들림 효과 적용
+    const shakeOffset = particleSystem.getShakeOffset();
+
+    push();
+    translate(shakeOffset.x, shakeOffset.y);
+
     // UI 먼저 그리기 (배경 포함)
     uiRenderer.drawGameUI(gameState);
 
-    // 카드 렌더링
-    cardRenderer.drawAllCards(gameState.cards, hoveredCard);
+    // 카드 렌더링 (확대 효과 적용)
+    const zoomingCard = particleSystem.getZoomingCard();
+    const zoomScale = particleSystem.getCardZoomScale();
+
+    gameState.cards.forEach(card => {
+        const isHovered = card === hoveredCard;
+
+        if (zoomingCard && card === zoomingCard) {
+            // 확대 효과 적용
+            push();
+            const centerX = card.x + CARD_CONFIG.width / 2;
+            const centerY = card.y + CARD_CONFIG.height / 2;
+            translate(centerX, centerY);
+            scale(zoomScale);
+            translate(-centerX, -centerY);
+            cardRenderer.drawCard(card, isHovered);
+            pop();
+        } else {
+            cardRenderer.drawCard(card, isHovered);
+        }
+    });
 
     // 파티클 렌더링 (카드 위에)
     if (particleSystem) {
         particleSystem.update();
     }
+
+    pop();
+
+    // 화면 플래시 효과 (흔들림 바깥에서)
+    particleSystem.updateScreenFlash();
 
     // 디버그 모드 (키보드 'D' 눌렀을 때)
     if (keyIsPressed && key === 'd') {
@@ -152,6 +182,7 @@ function keyPressed() {
             gameManager.resetGame();
         }
     }
+
 }
 
 /**
@@ -258,13 +289,25 @@ function setupGameCallbacks() {
     // 카드 뒤집기
     gameManager.on('card:flip', (card) => {
         console.log('Card flipped:', card.id);
-        soundManager.play('click', 0.5);
+        // 히든 카드인 경우 특별 효과음
+        if (card.isHiddenCard) {
+            soundManager.play('hidden_click', 0.7);
+        } else {
+            soundManager.play('click', 0.5);
+        }
     });
 
     // 매칭 성공
     gameManager.on('match:success', (data) => {
         const { card1, card2, points } = data;
         console.log(`Match! Cards ${card1.id} and ${card2.id}, +${points} points`);
+
+        // 히든 카드는 별도 처리 (hidden:match 이벤트에서 처리)
+        if (card1.isHiddenCard) {
+            cardRenderer.animateMatch(card1, card2);
+            return;
+        }
+
         uiRenderer.showMessage('짝 성공!', 1000, 'success');
         cardRenderer.animateMatch(card1, card2);
         soundManager.play('match', 0.7);
@@ -368,12 +411,63 @@ function setupGameCallbacks() {
         console.log('Game reset');
     });
 
+    // 히든 카드 매칭 - 전체 카드 공개 이벤트
+    gameManager.on('hidden:match', (data) => {
+        const { card1, card2, points } = data;
+        console.log('🎉 Hidden card matched!', card1.id, card2.id);
+
+        // 특별 효과음 재생
+        soundManager.play('hidden_match', 0.8);
+
+        // 특별 시각 효과 (플래시 + 폭죽 + 흔들림)
+        const centerX = (card1.x + card2.x) / 2 + CARD_CONFIG.width / 2;
+        const centerY = (card1.y + card2.y) / 2 + CARD_CONFIG.height / 2;
+        particleSystem.triggerGoldenFlash(500);
+        particleSystem.triggerHiddenExplosion(centerX, centerY);
+        particleSystem.triggerScreenShake(12, 400);
+
+        // 특별 메시지 표시
+        uiRenderer.showMessage('✨히든 카드 발견✨', 1500, 'success');
+
+        // 순차 연출: 효과 후 전체 카드 공개
+        setTimeout(() => {
+            revealAllCards(HIDDEN_CARD.revealDuration);
+        }, 1000);
+    });
+
     // 에러 처리
     gameManager.on('error', (data) => {
         const { method, error } = data;
         console.error(`[GameManager Error] ${method}:`, error);
         uiRenderer.showMessage('오류가 발생했습니다. 게임을 다시 시작해주세요.', 3000, 'error');
     });
+}
+
+// ========== 히든 카드 특수 기능 ==========
+
+/**
+ * 모든 카드를 일시적으로 공개
+ * @param {number} duration - 공개 시간 (ms)
+ */
+function revealAllCards(duration = 1000) {
+    const cards = gameState.cards;
+    const unflippedCards = cards.filter(card => !card.isFlipped && !card.isMatched);
+
+    // 모든 카드 앞면으로 뒤집기
+    unflippedCards.forEach(card => {
+        card.setFlipped(true);
+        cardRenderer.animateFlip(card, 200, true);
+    });
+
+    // duration 후 다시 뒤집기
+    setTimeout(() => {
+        unflippedCards.forEach(card => {
+            if (!card.isMatched) {
+                card.setFlipped(false);
+                cardRenderer.animateFlip(card, 200, false);
+            }
+        });
+    }, duration);
 }
 
 // ========== 디버그 함수 (브라우저 콘솔에서 사용) ==========
