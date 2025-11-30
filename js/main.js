@@ -28,8 +28,8 @@ function setup() {
     const canvas = createCanvas(CANVAS_CONFIG.width, CANVAS_CONFIG.height);
     canvas.parent('canvas-container');
 
-    // 텍스트 설정
-    textFont('Noto Sans KR, -apple-system, sans-serif');
+    // 텍스트 설정 (Cute Font: 귀여운 한글 폰트)
+    textFont('Cute Font, -apple-system, sans-serif');
 
     // 인스턴스 생성
     initializeInstances();

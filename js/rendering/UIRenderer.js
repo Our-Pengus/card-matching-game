@@ -60,12 +60,12 @@ class UIRenderer {
             heart: '#FF6B9D'
         };
 
-        // 폰트 설정
+        // 폰트 설정 (Cute Font용 +8 사이즈 업)
         this.fonts = {
-            title: 48,
-            button: 32,
-            ui: 24,
-            small: 18
+            title: 56,
+            button: 40,
+            ui: 32,
+            small: 26
         };
 
         // 애니메이션
