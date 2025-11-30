@@ -183,43 +183,6 @@ function keyPressed() {
         }
     }
 
-    // ========== 히든 카드 효과 테스트 (게임 플레이 중에만) ==========
-    if (gameState.phase === GAME_STATE.PLAYING) {
-        // 1: 황금색 플래시
-        if (key === '1') {
-            console.log('테스트: 황금색 플래시');
-            particleSystem.triggerGoldenFlash(500);
-        }
-
-        // 2: 폭죽 파티클
-        if (key === '2') {
-            console.log('테스트: 폭죽 파티클');
-            particleSystem.triggerHiddenExplosion(width / 2, height / 2);
-        }
-
-        // 3: 화면 흔들림
-        if (key === '3') {
-            console.log('테스트: 화면 흔들림');
-            particleSystem.triggerScreenShake(15, 400);
-        }
-
-        // 4: 카드 확대 (첫 번째 카드)
-        if (key === '4') {
-            console.log('테스트: 카드 확대');
-            const firstCard = gameState.cards[0];
-            if (firstCard) {
-                particleSystem.triggerCardZoom(firstCard, 800);
-            }
-        }
-
-        // 5: 모든 효과 동시에
-        if (key === '5') {
-            console.log('테스트: 모든 효과 동시');
-            particleSystem.triggerGoldenFlash(500);
-            particleSystem.triggerHiddenExplosion(width / 2, height / 2);
-            particleSystem.triggerScreenShake(12, 400);
-        }
-    }
 }
 
 /**
@@ -463,11 +426,13 @@ function setupGameCallbacks() {
         particleSystem.triggerHiddenExplosion(centerX, centerY);
         particleSystem.triggerScreenShake(12, 400);
 
-        // 전체 카드 1초간 공개
-        revealAllCards(HIDDEN_CARD.revealDuration);
-
         // 특별 메시지 표시
         uiRenderer.showMessage('✨히든 카드 발견✨', 1500, 'success');
+
+        // 순차 연출: 효과 후 전체 카드 공개
+        setTimeout(() => {
+            revealAllCards(HIDDEN_CARD.revealDuration);
+        }, 1000);
     });
 
     // 에러 처리
