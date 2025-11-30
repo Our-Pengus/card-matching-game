@@ -169,72 +169,83 @@ class UIRenderer {
 
     /**
      * 곰 캐릭터 그리기
+     * @param {number} x - x 좌표
+     * @param {number} y - y 좌표
+     * @param {number} bearScale - 크기 배율
+     * @param {boolean} isHappy - true: 웃는 표정, false: 우는 표정
      */
     _drawBearCharacter(x, y, bearScale = 1, isHappy = false) {
         push();
         translate(x, y);
         scale(bearScale);
 
-        const bodySize = 80;
+        const faceSize = 80;
 
-        // 몸통
+        // 귀 (좌우)
         fill(this.colors.bear.body);
         stroke(this.colors.text.white);
         strokeWeight(4);
-        ellipse(0, 0, bodySize, bodySize * 1.2);
-
-        // 귀 (좌우)
-        ellipse(-bodySize * 0.4, -bodySize * 0.45, bodySize * 0.35, bodySize * 0.35);
-        ellipse(bodySize * 0.4, -bodySize * 0.45, bodySize * 0.35, bodySize * 0.35);
+        ellipse(-faceSize * 0.4, -faceSize * 0.45, faceSize * 0.4, faceSize * 0.4);
+        ellipse(faceSize * 0.4, -faceSize * 0.45, faceSize * 0.4, faceSize * 0.4);
 
         // 귀 안쪽
         fill(this.colors.bear.blush);
         noStroke();
-        ellipse(-bodySize * 0.4, -bodySize * 0.45, bodySize * 0.2, bodySize * 0.2);
-        ellipse(bodySize * 0.4, -bodySize * 0.45, bodySize * 0.2, bodySize * 0.2);
+        ellipse(-faceSize * 0.4, -faceSize * 0.45, faceSize * 0.2, faceSize * 0.2);
+        ellipse(faceSize * 0.4, -faceSize * 0.45, faceSize * 0.2, faceSize * 0.2);
 
-        // 얼굴
+        // 얼굴 (메인)
         fill(this.colors.bear.body);
         stroke(this.colors.text.white);
         strokeWeight(4);
-        ellipse(0, -bodySize * 0.1, bodySize * 0.85, bodySize * 0.75);
+        ellipse(0, 0, faceSize, faceSize);
 
         // 눈
         fill(this.colors.bear.face);
         noStroke();
         if (isHappy) {
-            // 웃는 눈
+            // 웃는 눈 (^ ^)
             stroke(this.colors.bear.face);
             strokeWeight(3);
             noFill();
-            arc(-bodySize * 0.2, -bodySize * 0.2, 12, 8, 0, PI);
-            arc(bodySize * 0.2, -bodySize * 0.2, 12, 8, 0, PI);
+            arc(-faceSize * 0.2, -faceSize * 0.1, 14, 10, 0, PI);
+            arc(faceSize * 0.2, -faceSize * 0.1, 14, 10, 0, PI);
         } else {
-            // 기본 눈
-            ellipse(-bodySize * 0.2, -bodySize * 0.2, 8, 8);
-            ellipse(bodySize * 0.2, -bodySize * 0.2, 8, 8);
+            // 우는 눈 (ㅠㅠ)
+            stroke(this.colors.bear.face);
+            strokeWeight(3);
+            noFill();
+            arc(-faceSize * 0.2, -faceSize * 0.05, 14, 10, PI, TWO_PI);
+            arc(faceSize * 0.2, -faceSize * 0.05, 14, 10, PI, TWO_PI);
+            // 눈물
+            fill('#87CEEB');
+            noStroke();
+            ellipse(-faceSize * 0.2, faceSize * 0.08, 5, 10);
+            ellipse(faceSize * 0.2, faceSize * 0.08, 5, 10);
         }
 
         // 코
         noStroke();
         fill(this.colors.bear.face);
-        ellipse(0, 0, 12, 10);
+        ellipse(0, faceSize * 0.1, 14, 12);
 
         // 입
         stroke(this.colors.bear.face);
         strokeWeight(2);
         noFill();
         if (isHappy) {
-            arc(0, 5, 20, 15, 0, PI);
+            // 웃는 입
+            arc(0, faceSize * 0.2, 20, 15, 0, PI);
         } else {
-            arc(0, 8, 16, 10, 0, PI);
+            // 슬픈 입
+            arc(0, faceSize * 0.28, 16, 10, PI, TWO_PI);
         }
 
         // 볼 (핑크)
         fill(this.colors.bear.blush);
         noStroke();
-        ellipse(-bodySize * 0.35, 0, 15, 12);
-        ellipse(bodySize * 0.35, 0, 15, 12);
+        ellipse(-faceSize * 0.32, faceSize * 0.1, 16, 12);
+        ellipse(faceSize * 0.32, faceSize * 0.1, 16, 12);
 
         pop();
     }

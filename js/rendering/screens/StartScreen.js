@@ -21,8 +21,8 @@ class StartScreen {
         this.ui._drawWaves(height - 150);
         this.ui._drawClouds();
 
-        // 캐릭터 (곰)
-        this.ui._drawBearCharacter(width / 2, height / 2 + 100, 1.5);
+        // 캐릭터 (곰) - 웃는 표정
+        this.ui._drawBearCharacter(width / 2, height / 2 + 100, 1.5, true);
 
         // 말풍선
         this.ui._drawSpeechBubble(
@@ -91,8 +91,8 @@ class StartScreen {
         this.ui._drawWaves(height - 150);
         this.ui._drawClouds();
 
-        // 캐릭터 (작게)
-        this.ui._drawBearCharacter(150, height - 100, 0.8);
+        // 캐릭터 (작게) - 웃는 표정
+        this.ui._drawBearCharacter(150, height - 100, 0.8, true);
 
         // 말풍선
         this.ui._drawSpeechBubble(
