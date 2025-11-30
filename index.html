@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메모리 카드 게임</title>
+
+    <!-- p5.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+
+    <!-- Google Fonts - 귀여운 한글 폰트들 -->
+    <link href="https://fonts.googleapis.com/css2?family=Jua&family=Gamja+Flower&family=Cute+Font&family=Hi+Melody&display=swap" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="canvas-container">
+        <!-- p5.js 캔버스가 여기에 자동으로 생성됩니다 -->
+    </div>
+
+    <!-- JavaScript 파일들 (레이어 순서대로 로드) -->
+
+    <!-- 1. Config & Utils (먼저 로드) -->
+    <script src="js/config.js"></script>
+    <script src="js/utils/Logger.js"></script>
+    <script src="js/utils/EventEmitter.js"></script>
+
+    <!-- 2. Utils Layer -->
+    <script src="js/utils/ArrayUtils.js"></script>
+    <script src="js/utils/GridCalculator.js"></script>
+    <script src="js/utils/SoundManager.js"></script>
+    <script src="js/utils/HighScoreManager.js"></script>
+
+    <!-- 3. Core Layer (데이터 모델) -->
+    <script src="js/core/Card.js"></script>
+    <script src="js/core/GameState.js"></script>
+
+    <!-- 4. Logic Layer (비즈니스 로직) -->
+    <script src="js/logic/CardManager.js"></script>
+    <script src="js/logic/GameManager.js"></script>
+
+    <!-- 5. Rendering Layer (UI) -->
+    <script src="js/rendering/CardRenderer.js"></script>
+    <script src="js/rendering/screens/StartScreen.js"></script>
+    <script src="js/rendering/screens/GameScreen.js"></script>
+    <script src="js/rendering/screens/ResultScreen.js"></script>
+    <script src="js/rendering/UIRenderer.js"></script>
+    <script src="js/rendering/ParticleSystem.js"></script>
+
+    <!-- 6. Main (마지막 - p5.js 통합) -->
+    <script src="js/main.js"></script>
+</body>
+</html>
