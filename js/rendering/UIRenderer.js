@@ -18,6 +18,7 @@ class UIRenderer {
         this.messageQueue = [];
         this.helperMessage = null;
         this.helperMessageEndTime = 0;
+        this.previewStartTime = null;  // 미리보기 시작 시간
 
         // 디자인 시스템 - 레퍼런스 기반 파스텔 컬러
         this.colors = {

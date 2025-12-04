@@ -118,7 +118,8 @@ class StartScreen {
         const buttons = [
             { key: 'EASY', label: '쉬움', color: this.ui.colors.button.easy, y: 220 },
             { key: 'MEDIUM', label: '보통', color: this.ui.colors.button.normal, y: 320 },
-            { key: 'HARD', label: '어려움', color: this.ui.colors.button.hard, y: 420 }
+            { key: 'HARD', label: '어려움', color: this.ui.colors.button.hard, y: 420 },
+            { key: 'HELL', label: '지옥', color: this.ui.colors.button.hell, y: 520 }
         ];
 
         buttons.forEach(btn => {
@@ -144,7 +145,8 @@ class StartScreen {
         const buttons = [
             { key: 'EASY', y: 220 },
             { key: 'MEDIUM', y: 320 },
-            { key: 'HARD', y: 420 }
+            { key: 'HARD', y: 420 },
+            { key: 'HELL', y: 520 }
         ];
 
         for (let btn of buttons) {

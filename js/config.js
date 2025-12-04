@@ -62,6 +62,29 @@ const DIFFICULTY = {
             text: '#C62828'
         }
     },
+    HELL: {
+        name: '지옥',
+        sets: 16,           // 16세트 (3장 매칭) = 48장
+        pairs: 16,          // 호환성을 위해 pairs도 설정 (실제로는 sets 사용)
+        timeLimit: 60,      // 1분
+        gridCols: 8,
+        gridRows: 7,        // 8x7 = 56장 (48장 + 폭탄 4장 = 52장이므로 충분)
+        pointsPerMatch: 30,
+        timePenalty: 20,
+        previewTime: 8000,  // 8초 미리 보기 (3장 매칭이므로 조금 더 긴 시간)
+        hearts: 25,         // 하트 25개
+        matchingRule: 3,    // 3장 매칭
+        specialCards: {
+            bombs: 4,           // 폭탄 카드 4장
+            shuffle: true,      // 카드 섞임 효과
+            instantDeath: true  // 즉사 메커니즘
+        },
+        color: {
+            bg: '#FFCDD2',   // 어두운 레드
+            card: '#D32F2F',
+            text: '#C62828'
+        }
+    },
     // FUTURE FEATURE: 재앙 모드 (3장 매칭 시스템 구현 필요)
     // DISASTER: {
     //     name: '재앙',
@@ -111,8 +134,13 @@ const DIFFICULTY = {
 // 캔버스 설정 (카드 크기 변경으로 높이 증가)
 const CANVAS_CONFIG = {
     width: 1200,
-    height: 900,
-    backgroundColor: '#FFFFFF'
+    height: 800,
+    backgroundColor: '#FFFFFF',
+    // 난이도별 캔버스 크기 (지옥 난이도는 더 큰 배경)
+    hell: {
+        width: 1600,
+        height: 1000
+    }
 };
 
 // 카드 설정 (세로 직사각형, 에셋 비율 379:529 유지)

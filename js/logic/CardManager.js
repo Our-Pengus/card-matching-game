@@ -33,11 +33,18 @@ class CardManager {
             throw new Error('Invalid difficulty configuration');
         }
 
-        const pairs = difficulty.pairs;
-        const totalCards = pairs * 2;
+        // 3장 매칭인지 2장 매칭인지 확인
+        const matchingRule = difficulty.matchingRule || 2;
+        const sets = difficulty.sets || difficulty.pairs;
+        
+        if (!sets) {
+            throw new Error('Invalid difficulty configuration: missing pairs or sets');
+        }
 
-        // 1. 카드 쌍 생성
-        const cards = this._generateCardPairs(pairs, theme);
+        // 1. 카드 생성 (2장 또는 3장 매칭)
+        const cards = matchingRule === 3 
+            ? this._generateCardSets(sets, theme)
+            : this._generateCardPairs(sets, theme);
 
         // 2. 카드 섞기
         const shuffled = ArrayUtils.shuffle(cards);
@@ -82,6 +89,31 @@ class CardManager {
                     HIDDEN_CARD.imagePath
                 );
                 cards.push(hiddenCard);
+            }
+        }
+
+        return cards;
+    }
+
+    /**
+     * 카드 세트 생성 (3장 매칭용)
+     *
+     * @private
+     * @param {number} sets - 생성할 세트의 개수
+     * @param {string} theme - 카드 테마
+     * @returns {Card[]} 카드 배열 (섞이지 않음)
+     */
+    _generateCardSets(sets, theme) {
+        const cards = [];
+        const imagePaths = this._getImagePaths(theme, sets);
+
+        for (let id = 0; id < sets; id++) {
+            const imagePath = imagePaths[id] || `assets/images/cards/placeholder_${id}.png`;
+
+            // 같은 ID를 가진 카드 3개 생성 (세트)
+            for (let j = 0; j < 3; j++) {
+                const card = new Card(id, 0, 0, imagePath);
+                cards.push(card);
             }
         }
 
