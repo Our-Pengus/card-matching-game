@@ -161,7 +161,7 @@ class StartScreen {
             { key: 'EASY', y: 220 },
             { key: 'MEDIUM', y: 320 },
             { key: 'HARD', y: 420 },
-            { key: 'HELL', y: 520 }
+                { key: 'HELL', y: 520 }
         ];
 
         for (let btn of buttons) {

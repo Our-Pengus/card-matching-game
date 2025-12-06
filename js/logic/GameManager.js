@@ -356,6 +356,15 @@ class GameManager extends EventEmitter {
      * @param {Card} card3
      */
     _handleMatch3(card1, card2, card3) {
+        // 히든 카드 매칭인 경우 특별 처리 (3장 모두 히든 카드면)
+        if (card1.isHiddenCard && card2.isHiddenCard && card3.isHiddenCard) {
+            // 3장 모두 히든 카드인 경우, 첫 2장으로 히든 매칭 처리
+            this._handleHiddenMatch(card1, card2);
+            // 세 번째 히든 카드도 매칭 처리
+            card3.setMatched();
+            return;
+        }
+
         // 카드 상태 업데이트
         card1.setMatched();
         card2.setMatched();
@@ -643,6 +652,43 @@ class GameManager extends EventEmitter {
         this.state.clearSelection();
 
         return true;
+    }
+
+    /**
+     * 히든 카드 매칭 처리 (보너스 효과)
+     * @private
+     * @param {Card} card1
+     * @param {Card} card2
+     */
+    _handleHiddenMatch(card1, card2) {
+        // 기본 매칭 처리
+        card1.setMatched();
+        card2.setMatched();
+
+        // 점수 계산
+        const basePoints = this.state.difficulty.pointsPerMatch;
+        const comboBonus = this.state.combo > 0 ? this.state.combo * 5 : 0;
+        const totalPoints = basePoints + comboBonus;
+
+        // 상태 업데이트
+        this.state.recordMatch(basePoints);
+        if (comboBonus > 0) {
+            this.state.addComboBonus(comboBonus);
+        }
+
+        // 선택 초기화
+        this.state.clearSelection();
+
+        // 히든 카드 매칭 이벤트 발생 (전체 카드 공개 효과)
+        this.emit('hidden:match', {
+            card1,
+            card2,
+            points: totalPoints,
+            combo: this.state.combo
+        });
+
+        // 게임 클리어 체크
+        this._checkGameComplete();
     }
 
     // ========== 타이머 관리 ==========

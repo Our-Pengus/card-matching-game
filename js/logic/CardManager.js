@@ -46,11 +46,21 @@ class CardManager {
             ? this._generateCardSets(sets, theme)
             : this._generateCardPairs(sets, theme);
 
-        // 2. 폭탄 카드 추가
+        // 2. 히든 카드 추가 (보너스 카드 - 매칭 규칙에 따라 생성)
+        if (typeof HIDDEN_CARD !== 'undefined' && HIDDEN_CARD.enabled) {
+            const hiddenImagePath = HIDDEN_CARD.imagePath || 'assets/images/cards/hidden.jpg';
+            // 3장 매칭 모드면 3장, 2장 매칭 모드면 2장 생성
+            const hiddenCardCount = matchingRule === 3 ? 3 : 2;
+            for (let i = 0; i < hiddenCardCount; i++) {
+                cards.push(new Card(HIDDEN_CARD.cardId, 0, 0, hiddenImagePath, false));
+            }
+        }
+
+        // 3. 폭탄 카드 추가 (페널티 카드)
         if (difficulty.specialCards && difficulty.specialCards.bombs) {
             for (let i = 0; i < difficulty.specialCards.bombs; i++) {
                 const bombId = -(i + 1);
-                cards.push(new Card(bombId, 0, 0, '', true));
+                cards.push(new Card(bombId, 0, 0, 'assets/images/cards/bomb.png', true));
             }
         }
 
@@ -75,28 +85,13 @@ class CardManager {
         const cards = [];
         const imagePaths = this._getImagePaths(theme, pairs);
 
-        // 히든 카드 활성화 시 일반 카드 쌍 수를 1개 줄임
-        const normalPairs = HIDDEN_CARD.enabled ? pairs - 1 : pairs;
-
-        for (let id = 0; id < normalPairs; id++) {
+        for (let id = 0; id < pairs; id++) {
             const imagePath = imagePaths[id] || `assets/images/cards/placeholder_${id}.png`;
 
             // 같은 ID를 가진 카드 2개 생성 (짝)
             for (let j = 0; j < 2; j++) {
                 const card = new Card(id, 0, 0, imagePath);
                 cards.push(card);
-            }
-        }
-
-        // 히든 카드 1쌍 추가
-        if (HIDDEN_CARD.enabled) {
-            for (let j = 0; j < 2; j++) {
-                const hiddenCard = new Card(
-                    HIDDEN_CARD.cardId,
-                    0, 0,
-                    HIDDEN_CARD.imagePath
-                );
-                cards.push(hiddenCard);
             }
         }
 
@@ -137,8 +132,13 @@ class CardManager {
      * @returns {string[]} 이미지 경로 배열
      */
     _getImagePaths(theme, count) {
-        // CARD_THEMES는 현재 구현되지 않음 - 향후 확장용
-        // 현재는 플레이스홀더 사용
+        // CARD_IMAGES 배열 사용
+        if (typeof CARD_IMAGES !== 'undefined' && CARD_IMAGES.length > 0) {
+            return ArrayUtils.range(0, count).map(i =>
+                CARD_IMAGES[i % CARD_IMAGES.length]
+            );
+        }
+        // CARD_IMAGES가 없으면 플레이스홀더 사용
         return ArrayUtils.range(0, count).map(i =>
             `assets/images/cards/placeholder_${i}.png`
         );

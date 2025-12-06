@@ -51,7 +51,7 @@ const DIFFICULTY = {
         gridRows: 4,
         pointsPerMatch: 20,
         timePenalty: 15,
-        previewTime: 5000,  // 5초 미리 보기
+        previewTime: 0,     // 미리 보기 없음
         hearts: 20,         // 하트 20개
         specialCards: {
             bombs: 2        // 폭탄 카드 2장
@@ -64,18 +64,18 @@ const DIFFICULTY = {
     },
     HELL: {
         name: '지옥',
-        sets: 22,           // 22세트 (3장 매칭) = 66장
-        pairs: 22,          // 호환성을 위해 pairs도 설정 (실제로는 sets 사용)
+        sets: 18,           // 18세트 (3장 매칭) = 54장
+        pairs: 18,          // 호환성을 위해 pairs도 설정 (실제로는 sets 사용)
         timeLimit: 60,      // 1분
         gridCols: 12,
-        gridRows: 6,        // 12x6 = 72장 (66장 + 폭탄 6장 = 72장)
+        gridRows: 5,        // 12x5 = 60장 (54장 + 히든 3장 + 폭탄 3장 = 60장)
         pointsPerMatch: 30,
         timePenalty: 20,
         previewTime: 5000,  // 5초 미리 보기
         hearts: 25,         // 하트 25개
         matchingRule: 3,    // 3장 매칭
         specialCards: {
-            bombs: 6,           // 폭탄 카드 6장
+            bombs: 3,           // 폭탄 카드 3장
             shuffle: true,      // 카드 섞임 효과
             instantDeath: true  // 즉사 메커니즘
         },
@@ -131,7 +131,7 @@ const DIFFICULTY = {
     // }
 };
 
-// 캔버스 설정 (카드 크기 변경으로 높이 증가)
+// 캔버스 설정
 const CANVAS_CONFIG = {
     width: 1200,
     height: 800,
@@ -202,10 +202,10 @@ const GAME_STATE = {
 // 특수 카드 타입 (향후 확장용)
 // FUTURE FEATURE: 현재는 NORMAL 카드만 구현됨
 // FUTURE: BONUS 카드 - 정답 짝 카드 (자동 매칭)
-// FUTURE: BOMB 카드 - 폭탄 카드 (페널티)
 const CARD_TYPE = {
     NORMAL: 'normal',       // 일반 카드
-    HIDDEN: 'hidden'        // 히든 카드 (특수 효과)
+    BOMB: 'bomb',           // 폭탄 카드 (페널티) - 구현 완료
+    HIDDEN: 'hidden'        // 히든 카드 (보너스) - 구현 완료
 };
 
 // 히든 카드 설정

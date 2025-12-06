@@ -63,6 +63,13 @@ class Card {
     /** @returns {boolean} */
     get isBombCard() { return this._isBombCard; }
 
+    /** @returns {boolean} */
+    get isHiddenCard() { 
+        return typeof HIDDEN_CARD !== 'undefined' && 
+               HIDDEN_CARD.enabled && 
+               this._id === HIDDEN_CARD.cardId; 
+    }
+
     // ========== 비즈니스 로직 ==========
 
     /**
