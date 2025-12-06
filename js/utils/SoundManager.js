@@ -58,7 +58,7 @@ class SoundManager {
      * @private
      */
     async _loadHiddenSounds() {
-        if (HIDDEN_CARD && HIDDEN_CARD.enabled) {
+        if (typeof HIDDEN_CARD !== 'undefined' && HIDDEN_CARD && HIDDEN_CARD.enabled) {
             await this.loadSound('hidden_click', this.soundPaths.hidden_click);
             await this.loadSound('hidden_match', this.soundPaths.hidden_match);
         }

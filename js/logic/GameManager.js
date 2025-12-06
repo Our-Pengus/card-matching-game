@@ -205,6 +205,11 @@ class GameManager extends EventEmitter {
             return false;
         }
 
+        // 폭탄 카드 처리
+        if (card.isBombCard) {
+            return this._handleBombCard(card);
+        }
+
         // 카드 뒤집기 애니메이션
         if (typeof cardRenderer !== 'undefined') {
             cardRenderer.animateFlip(card, 300, true);
@@ -213,6 +218,9 @@ class GameManager extends EventEmitter {
         }
 
         this.emit('card:flip', card);
+
+        // 난이도별 매칭 규칙 확인
+        const matchingRule = this.state.difficulty?.matchingRule || 2;
 
         // 첫 번째 카드 선택
         if (!this.state.firstCard) {
@@ -224,7 +232,24 @@ class GameManager extends EventEmitter {
         if (!this.state.secondCard && card !== this.state.firstCard) {
             this.state.selectSecondCard(card);
 
-            // 매칭 체크 (지연)
+            // 2장 매칭인 경우 즉시 체크
+            if (matchingRule === 2) {
+                setTimeout(() => {
+                    this._checkMatch();
+                }, CARD_CONFIG.matchDelay || 500);
+            }
+            // 3장 매칭인 경우 세 번째 카드 대기
+            return true;
+        }
+
+        // 세 번째 카드 선택 (3장 매칭용)
+        if (matchingRule === 3 && 
+            !this.state.thirdCard && 
+            card !== this.state.firstCard && 
+            card !== this.state.secondCard) {
+            this.state.selectThirdCard(card);
+
+            // 3장 매칭 체크 (지연)
             setTimeout(() => {
                 this._checkMatch();
             }, CARD_CONFIG.matchDelay || 500);
@@ -242,19 +267,39 @@ class GameManager extends EventEmitter {
      * @private
      */
     _checkMatch() {
-        const { firstCard, secondCard } = this.state;
+        const { firstCard, secondCard, thirdCard, difficulty } = this.state;
+        const matchingRule = difficulty?.matchingRule || 2;
 
-        if (!firstCard || !secondCard) {
-            logger.error('[GameManager] Cannot check match: missing cards');
-            return;
+        // 2장 매칭
+        if (matchingRule === 2) {
+            if (!firstCard || !secondCard) {
+                logger.error('[GameManager] Cannot check match: missing cards');
+                return;
+            }
+
+            const isMatch = firstCard.isMatchWith(secondCard);
+
+            if (isMatch) {
+                this._handleMatch(firstCard, secondCard);
+            } else {
+                this._handleMismatch(firstCard, secondCard);
+            }
         }
+        // 3장 매칭
+        else if (matchingRule === 3) {
+            if (!firstCard || !secondCard || !thirdCard) {
+                logger.error('[GameManager] Cannot check match: missing cards (3-card mode)');
+                return;
+            }
 
-        const isMatch = firstCard.isMatchWith(secondCard);
+            const isMatch = firstCard.isMatchWith(secondCard) && 
+                           firstCard.isMatchWith(thirdCard);
 
-        if (isMatch) {
-            this._handleMatch(firstCard, secondCard);
-        } else {
-            this._handleMismatch(firstCard, secondCard);
+            if (isMatch) {
+                this._handleMatch3(firstCard, secondCard, thirdCard);
+            } else {
+                this._handleMismatch3(firstCard, secondCard, thirdCard);
+            }
         }
     }
 
@@ -304,17 +349,35 @@ class GameManager extends EventEmitter {
     }
 
     /**
-     * 히든 카드 매칭 성공 처리
+     * 3장 매칭 성공 처리
      * @private
      * @param {Card} card1
      * @param {Card} card2
+     * @param {Card} card3
      */
-    _handleHiddenMatch(card1, card2) {
+    _handleMatch3(card1, card2, card3) {
+        // 히든 카드 매칭인 경우 특별 처리 (3장 중 하나라도 히든 카드면)
+        if (card1.isHiddenCard || card2.isHiddenCard || card3.isHiddenCard) {
+            // 히든 카드가 포함된 경우, 첫 번째 히든 카드 쌍으로 처리
+            const hiddenCards = [card1, card2, card3].filter(c => c.isHiddenCard);
+            if (hiddenCards.length >= 2) {
+                this._handleHiddenMatch(hiddenCards[0], hiddenCards[1]);
+                // 나머지 카드도 매칭 처리
+                [card1, card2, card3].forEach(card => {
+                    if (!card.isHiddenCard) {
+                        card.setMatched();
+                    }
+                });
+                return;
+            }
+        }
+
         // 카드 상태 업데이트
         card1.setMatched();
         card2.setMatched();
+        card3.setMatched();
 
-        // 점수 계산 (일반 카드와 동일)
+        // 점수 계산
         const basePoints = this.state.difficulty.pointsPerMatch;
         const comboBonus = this.state.combo > 0 ? this.state.combo * 5 : 0;
         const totalPoints = basePoints + comboBonus;
@@ -328,18 +391,11 @@ class GameManager extends EventEmitter {
         // 선택 초기화
         this.state.clearSelection();
 
-        // 히든 카드 전용 이벤트 발생
-        this.emit('hidden:match', {
-            card1,
-            card2,
-            points: totalPoints,
-            combo: this.state.combo
-        });
-
-        // 일반 매칭 이벤트도 발생 (기존 로직 호환)
+        // 이벤트 발생
         this.emit('match:success', {
             card1,
             card2,
+            card3,
             points: totalPoints,
             combo: this.state.combo
         });
@@ -348,6 +404,46 @@ class GameManager extends EventEmitter {
         if (this.state.isAllMatched()) {
             this._completeGame();
         }
+    }
+
+    /**
+     * 3장 매칭 실패 처리
+     * @private
+     * @param {Card} card1
+     * @param {Card} card2
+     * @param {Card} card3
+     */
+    _handleMismatch3(card1, card2, card3) {
+        const timePenalty = this.state.difficulty.timePenalty || 0;
+        const previousHearts = this.state.hearts;
+
+        // 상태 업데이트 (하트 감소 및 시간 페널티 포함)
+        this.state.recordMismatch(timePenalty);
+
+        // 하트 감소 이벤트
+        if (this.state.hearts < previousHearts) {
+            this.emit('heart:lost', {
+                remaining: this.state.hearts,
+                max: this.state.maxHearts
+            });
+        }
+
+        // 이벤트 발생
+        this.emit('match:fail', {
+            card1,
+            card2,
+            card3,
+            penalty: timePenalty
+        });
+
+        // 하트가 0이 되면 게임 오버
+        if (this.state.isHeartsEmpty()) {
+            this._handleHeartsDepleted3(card1, card2, card3);
+            return;
+        }
+
+        // 카드 뒤집기 애니메이션
+        this._flipCardsBack3(card1, card2, card3);
     }
 
     /**
@@ -434,6 +530,174 @@ class GameManager extends EventEmitter {
         }, CARD_CONFIG.mismatchDelay || 1000);
     }
 
+    /**
+     * 하트 소진 처리 (3장 매칭용)
+     * @private
+     */
+    _handleHeartsDepleted3(card1, card2, card3) {
+        const flipAnimDuration = 300;
+
+        setTimeout(() => {
+            this._flipCardsBack3(card1, card2, card3, flipAnimDuration);
+
+            setTimeout(() => {
+                this.state.clearSelection();
+                this._gameOver('hearts');
+            }, flipAnimDuration);
+        }, CARD_CONFIG.mismatchDelay || 1000);
+    }
+
+    /**
+     * 카드 뒷면으로 뒤집기 (3장)
+     * @private
+     * @param {Card} card1
+     * @param {Card} card2
+     * @param {Card} card3
+     * @param {number} [duration=300] - 애니메이션 시간
+     */
+    _flipCardsBack3(card1, card2, card3, duration = 300) {
+        setTimeout(() => {
+            if (!card1.isMatched && typeof cardRenderer !== 'undefined') {
+                cardRenderer.animateFlip(card1, duration, false);
+            } else if (!card1.isMatched) {
+                card1.flip();
+            }
+
+            if (!card2.isMatched && typeof cardRenderer !== 'undefined') {
+                cardRenderer.animateFlip(card2, duration, false);
+            } else if (!card2.isMatched) {
+                card2.flip();
+            }
+
+            if (!card3.isMatched && typeof cardRenderer !== 'undefined') {
+                cardRenderer.animateFlip(card3, duration, false);
+            } else if (!card3.isMatched) {
+                card3.flip();
+            }
+
+            setTimeout(() => {
+                this.state.clearSelection();
+            }, duration);
+        }, CARD_CONFIG.mismatchDelay || 1000);
+    }
+
+    // ========== 폭탄 카드 처리 ==========
+
+    /**
+     * 폭탄 카드 클릭 처리
+     * @private
+     */
+    _handleBombCard(bombCard) {
+        if (typeof cardRenderer !== 'undefined') {
+            cardRenderer.animateFlip(bombCard, 300, true);
+        } else {
+            bombCard.flip();
+        }
+        this.emit('card:flip', bombCard);
+
+        const difficulty = this.state.difficulty;
+        const specialCards = difficulty.specialCards || {};
+
+        // 1% 확률: 즉사
+        if (specialCards.instantDeath && Math.random() < 0.01) {
+            if (typeof uiRenderer !== 'undefined') {
+                uiRenderer.showMessage('💀 폭탄 즉사!', 2000, 'error');
+            }
+            setTimeout(() => {
+                this._gameOver('bomb');
+            }, 1000);
+            return true;
+        }
+
+        // 3% 확률: 카드 섞임
+        if (specialCards.shuffle && Math.random() < 0.03) {
+            const cards = this.state.cards.filter(c => !c.isMatched && !c.isBombCard);
+            const matched = this.state.cards.filter(c => c.isMatched);
+            const bombs = this.state.cards.filter(c => c.isBombCard);
+            const shuffled = ArrayUtils.shuffle(cards);
+            const allCards = [...matched, ...bombs, ...shuffled];
+            const positions = GridCalculator.calculateAllPositions(allCards.length, {
+                canvasWidth: CANVAS_CONFIG.width,
+                canvasHeight: CANVAS_CONFIG.height,
+                cols: difficulty.gridCols,
+                rows: difficulty.gridRows,
+                cardWidth: CARD_CONFIG.width,
+                cardHeight: CARD_CONFIG.height,
+                margin: CARD_CONFIG.margin,
+                topOffset: 180
+            });
+            allCards.forEach((c, i) => c.setPosition(positions[i].x, positions[i].y));
+            this.state.setCards(allCards);
+            if (typeof uiRenderer !== 'undefined') {
+                uiRenderer.showMessage('💥 카드가 섞였어요!', 2000, 'error');
+            }
+        }
+
+        // 기본 효과: 시간 감소
+        const penalty = difficulty.timePenalty * 1.5;
+        const currentTime = this.state.timeRemaining || this.state.timeLimitSeconds;
+        const newTime = Math.max(0, currentTime - penalty);
+        
+        // timeLimitSeconds를 감소시켜서 타이머가 올바르게 계산하도록 함
+        this.state._timeLimitSeconds = Math.max(0, this.state.timeLimitSeconds - penalty);
+        
+        // _startTime을 조정하여 경과 시간을 늘림 (타이머가 올바르게 계산하도록)
+        if (this.state.startTime) {
+            this.state._startTime = this.state.startTime - (penalty * 1000);
+        }
+        
+        // _timeRemaining 직접 업데이트
+        this.state._timeRemaining = newTime;
+        
+        if (typeof uiRenderer !== 'undefined') {
+            uiRenderer.showMessage(`💣 시간 -${Math.round(penalty)}초!`, 2000, 'error');
+        }
+        
+        if (newTime <= 0) {
+            this._gameOver('time');
+        }
+        this.state.clearSelection();
+
+        return true;
+    }
+
+    /**
+     * 히든 카드 매칭 처리 (보너스 효과)
+     * @private
+     * @param {Card} card1
+     * @param {Card} card2
+     */
+    _handleHiddenMatch(card1, card2) {
+        // 기본 매칭 처리
+        card1.setMatched();
+        card2.setMatched();
+
+        // 점수 계산
+        const basePoints = this.state.difficulty.pointsPerMatch;
+        const comboBonus = this.state.combo > 0 ? this.state.combo * 5 : 0;
+        const totalPoints = basePoints + comboBonus;
+
+        // 상태 업데이트
+        this.state.recordMatch(basePoints);
+        if (comboBonus > 0) {
+            this.state.addComboBonus(comboBonus);
+        }
+
+        // 선택 초기화
+        this.state.clearSelection();
+
+        // 히든 카드 매칭 이벤트 발생 (전체 카드 공개 효과)
+        this.emit('hidden:match', {
+            card1,
+            card2,
+            points: totalPoints,
+            combo: this.state.combo
+        });
+
+        // 게임 클리어 체크
+        this._checkGameComplete();
+    }
+
     // ========== 타이머 관리 ==========
 
     /**
@@ -444,11 +708,19 @@ class GameManager extends EventEmitter {
         this._stopTimer();
 
         this.timerInterval = setInterval(() => {
-            const elapsed = this.state.getElapsedSeconds();
-            const remaining = this.state.timeLimitSeconds - elapsed;
+            // _timeRemaining이 직접 설정된 경우(폭탄 카드 등) 이를 사용
+            // 그렇지 않으면 timeLimitSeconds - elapsed로 계산
+            let remaining;
+            if (this.state._timeRemaining !== undefined && this.state._timeRemaining !== null) {
+                // _timeRemaining이 설정되어 있으면 1초씩 감소
+                remaining = Math.max(0, this.state._timeRemaining - 1);
+            } else {
+                const elapsed = this.state.getElapsedSeconds();
+                remaining = this.state.timeLimitSeconds - elapsed;
+            }
 
             this.state.updateTime(remaining);
-            this.emit('timer:update', { remaining, elapsed });
+            this.emit('timer:update', { remaining, elapsed: this.state.getElapsedSeconds() });
 
             if (remaining <= 0) {
                 this._gameOver('time');
