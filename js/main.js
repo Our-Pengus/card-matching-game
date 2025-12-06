@@ -452,9 +452,9 @@ function setupGameCallbacks() {
 function revealAllCards(duration = 1000) {
     if (!gameState || !gameState.cards) return;
 
-    // 모든 카드 뒤집기 (매칭되지 않은 일반 카드만)
+    // 모든 카드 뒤집기
     gameState.cards.forEach(card => {
-        if (!card.isMatched && !card.isBombCard && !card.isHiddenCard) {
+        if (!card.isMatched && !card.isBombCard) {
             card.setFlipped(true);
             if (typeof cardRenderer !== 'undefined') {
                 cardRenderer.animateFlip(card, 200, true);
@@ -462,7 +462,7 @@ function revealAllCards(duration = 1000) {
         }
     });
 
-    // duration 후 다시 뒤집기 (매칭되지 않은 일반 카드만)
+    // duration 후 다시 뒤집기
     setTimeout(() => {
         gameState.cards.forEach(card => {
             if (!card.isMatched && !card.isBombCard && !card.isHiddenCard) {

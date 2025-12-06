@@ -356,13 +356,20 @@ class GameManager extends EventEmitter {
      * @param {Card} card3
      */
     _handleMatch3(card1, card2, card3) {
-        // 히든 카드 매칭인 경우 특별 처리 (3장 모두 히든 카드면)
-        if (card1.isHiddenCard && card2.isHiddenCard && card3.isHiddenCard) {
-            // 3장 모두 히든 카드인 경우, 첫 2장으로 히든 매칭 처리
-            this._handleHiddenMatch(card1, card2);
-            // 세 번째 히든 카드도 매칭 처리
-            card3.setMatched();
-            return;
+        // 히든 카드 매칭인 경우 특별 처리 (3장 중 하나라도 히든 카드면)
+        if (card1.isHiddenCard || card2.isHiddenCard || card3.isHiddenCard) {
+            // 히든 카드가 포함된 경우, 첫 번째 히든 카드 쌍으로 처리
+            const hiddenCards = [card1, card2, card3].filter(c => c.isHiddenCard);
+            if (hiddenCards.length >= 2) {
+                this._handleHiddenMatch(hiddenCards[0], hiddenCards[1]);
+                // 나머지 카드도 매칭 처리
+                [card1, card2, card3].forEach(card => {
+                    if (!card.isHiddenCard) {
+                        card.setMatched();
+                    }
+                });
+                return;
+            }
         }
 
         // 카드 상태 업데이트

@@ -64,18 +64,18 @@ const DIFFICULTY = {
     },
     HELL: {
         name: '지옥',
-        sets: 18,           // 18세트 (3장 매칭) = 54장
-        pairs: 18,          // 호환성을 위해 pairs도 설정 (실제로는 sets 사용)
+        sets: 19,           // 19세트 (3장 매칭) = 57장
+        pairs: 19,          // 호환성을 위해 pairs도 설정 (실제로는 sets 사용)
         timeLimit: 60,      // 1분
-        gridCols: 12,
-        gridRows: 5,        // 12x5 = 60장 (54장 + 히든 3장 + 폭탄 3장 = 60장)
+        gridCols: 11,
+        gridRows: 6,        // 11x6 = 66장 (57장 + 히든 3장 + 폭탄 6장 = 66장)
         pointsPerMatch: 30,
         timePenalty: 20,
         previewTime: 5000,  // 5초 미리 보기
         hearts: 25,         // 하트 25개
         matchingRule: 3,    // 3장 매칭
         specialCards: {
-            bombs: 3,           // 폭탄 카드 3장
+            bombs: 6,           // 폭탄 카드 6장
             shuffle: true,      // 카드 섞임 효과
             instantDeath: true  // 즉사 메커니즘
         },
