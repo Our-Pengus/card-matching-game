@@ -8,12 +8,12 @@ const DIFFICULTY = {
     EASY: {
         name: '하',
         pairs: 4,           // 4쌍 = 8장
-        timeLimit: 180,     // 3분
+        timeLimit: 60,      // 1분
         gridCols: 4,
         gridRows: 2,
         pointsPerMatch: 10,
         timePenalty: 5,     // 실패 시 5초 감점
-        previewTime: 5000,  // 5초 미리 보기
+        previewTime: 2500,  // 2.5초 미리 보기
         hearts: 5,          // 하트 5개
         specialCards: {
             bonusPairs: 2   // 정답 짝 카드 2장
@@ -27,12 +27,12 @@ const DIFFICULTY = {
     MEDIUM: {
         name: '중',
         pairs: 8,           // 8쌍 = 16장
-        timeLimit: 120,     // 2분
+        timeLimit: 90,      // 1.5분
         gridCols: 4,
         gridRows: 4,
         pointsPerMatch: 15,
         timePenalty: 10,
-        previewTime: 5000,  // 5초 미리 보기
+        previewTime: 4000,  // 5초 미리 보기
         hearts: 10,         // 하트 10개
         specialCards: {
             bonusPairs: 2   // 정답 짝 카드 2장
@@ -131,7 +131,7 @@ const DIFFICULTY = {
     // }
 };
 
-// 캔버스 설정
+// 캔버스 설정 (카드 크기 변경으로 높이 증가)
 const CANVAS_CONFIG = {
     width: 1200,
     height: 800,
@@ -143,17 +143,42 @@ const CANVAS_CONFIG = {
     }
 };
 
-// 카드 설정 (정사각형, 레퍼런스 스타일)
+// 카드 설정 (세로 직사각형, 에셋 비율 379:529 유지)
 const CARD_CONFIG = {
-    width: 110,             // 정사각형
-    height: 110,            // 정사각형
-    cornerRadius: 20,       // 둥근 모서리
-    margin: 18,             // 카드 간격 증가
+    width: 95,              // 원본 379 → 95 (약 1/4 축소)
+    height: 133,            // 원본 529 → 133 (비율 유지)
+    cornerRadius: 12,       // 둥근 모서리
+    margin: 12,             // 카드 간격
     backColor: '#FFB4D1',   // 파스텔 핑크
     flipDuration: 300,      // ms
     matchDelay: 500,        // 성공 시 대기
     mismatchDelay: 1000     // 실패 시 대기
 };
+
+// 카드 이미지 경로 (18종)
+const CARD_IMAGES = [
+    // 과일 (4종)
+    'assets/images/cards/과일/바나나.png',
+    'assets/images/cards/과일/사과.png',
+    'assets/images/cards/과일/수박.png',
+    'assets/images/cards/과일/포도.png',
+    // 동물 (8종)
+    'assets/images/cards/동물/강아지.png',
+    'assets/images/cards/동물/고양이.png',
+    'assets/images/cards/동물/곰.png',
+    'assets/images/cards/동물/기린.png',
+    'assets/images/cards/동물/돼지.png',
+    'assets/images/cards/동물/병아리.png',
+    'assets/images/cards/동물/코끼리.png',
+    'assets/images/cards/동물/펭귄.png',
+    // 악기 (6종)
+    'assets/images/cards/악기/기타.png',
+    'assets/images/cards/악기/드럼.png',
+    'assets/images/cards/악기/바이올린.png',
+    'assets/images/cards/악기/탬버린.png',
+    'assets/images/cards/악기/트럼펫.png',
+    'assets/images/cards/악기/피아노.png'
+];
 
 // 게임 상태
 const GAME_STATE = {
@@ -179,5 +204,14 @@ const GAME_STATE = {
 // FUTURE: BONUS 카드 - 정답 짝 카드 (자동 매칭)
 // FUTURE: BOMB 카드 - 폭탄 카드 (페널티)
 const CARD_TYPE = {
-    NORMAL: 'normal'        // 일반 카드 (현재 유일하게 구현된 타입)
+    NORMAL: 'normal',       // 일반 카드
+    HIDDEN: 'hidden'        // 히든 카드 (특수 효과)
+};
+
+// 히든 카드 설정
+const HIDDEN_CARD = {
+    enabled: true,
+    cardId: 99,             // 특수 ID
+    imagePath: 'assets/images/cards/hidden.jpg',
+    revealDuration: 1000    // 전체 카드 공개 시간 (ms)
 };

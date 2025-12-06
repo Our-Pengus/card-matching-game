@@ -121,6 +121,11 @@ class Particle {
 class ParticleSystem {
     constructor() {
         this.particles = [];
+
+        // 히든 카드 효과 상태
+        this.screenFlash = { active: false, alpha: 0, color: null };
+        this.screenShake = { active: false, intensity: 0, duration: 0, startTime: 0 };
+        this.cardZoom = { active: false, card: null, scale: 1, startTime: 0 };
     }
 
     /**
@@ -247,6 +252,181 @@ class ParticleSystem {
      */
     clear() {
         this.particles = [];
+    }
+
+    // ========== 히든 카드 특수 효과 ==========
+
+    /**
+     * 효과 1: 황금색 화면 플래시
+     * @param {number} duration - 지속 시간 (ms)
+     */
+    triggerGoldenFlash(duration = 500) {
+        this.screenFlash = {
+            active: true,
+            alpha: 200,
+            color: color(255, 215, 0), // 골드
+            startTime: millis(),
+            duration: duration
+        };
+    }
+
+    /**
+     * 효과 2: 히든 카드 위치에서 폭죽 폭발
+     * @param {number} x - 중심 x
+     * @param {number} y - 중심 y
+     */
+    triggerHiddenExplosion(x, y) {
+        const colors = [
+            color(255, 215, 0),   // 골드
+            color(255, 180, 0),   // 주황
+            color(255, 255, 150), // 밝은 노랑
+            color(255, 100, 150), // 핑크
+            color(200, 150, 255)  // 보라
+        ];
+
+        // 큰 폭발 파티클 30개
+        for (let i = 0; i < 30; i++) {
+            const angle = (i / 30) * TWO_PI;
+            const speed = random(8, 15);
+            const particle = new Particle(x, y, {
+                vx: cos(angle) * speed,
+                vy: sin(angle) * speed - 3,
+                size: random(10, 20),
+                color: random(colors),
+                shape: random(['star', 'circle']),
+                decay: 0.012,
+                gravity: 0.2
+            });
+            this.particles.push(particle);
+        }
+
+        // 추가 반짝이 파티클
+        for (let i = 0; i < 20; i++) {
+            const angle = random(TWO_PI);
+            const speed = random(3, 8);
+            const particle = new Particle(x, y, {
+                vx: cos(angle) * speed,
+                vy: sin(angle) * speed,
+                size: random(4, 8),
+                color: color(255, 255, 200),
+                shape: 'circle',
+                decay: 0.025,
+                gravity: 0.1
+            });
+            this.particles.push(particle);
+        }
+    }
+
+    /**
+     * 효과 3: 화면 흔들림 (쉐이크)
+     * @param {number} intensity - 흔들림 강도
+     * @param {number} duration - 지속 시간 (ms)
+     */
+    triggerScreenShake(intensity = 10, duration = 300) {
+        this.screenShake = {
+            active: true,
+            intensity: intensity,
+            duration: duration,
+            startTime: millis()
+        };
+    }
+
+    /**
+     * 효과 4: 카드 확대 연출 (중앙에서 확대 후 축소)
+     * @param {Card} card - 확대할 카드
+     * @param {number} duration - 지속 시간 (ms)
+     */
+    triggerCardZoom(card, duration = 600) {
+        this.cardZoom = {
+            active: true,
+            card: card,
+            scale: 1,
+            startTime: millis(),
+            duration: duration
+        };
+    }
+
+    /**
+     * 화면 플래시 효과 업데이트 및 렌더링
+     */
+    updateScreenFlash() {
+        if (!this.screenFlash.active) return;
+
+        const elapsed = millis() - this.screenFlash.startTime;
+        const progress = elapsed / this.screenFlash.duration;
+
+        if (progress >= 1) {
+            this.screenFlash.active = false;
+            return;
+        }
+
+        // 페이드 아웃 효과
+        const alpha = this.screenFlash.alpha * (1 - progress);
+
+        push();
+        noStroke();
+        fill(red(this.screenFlash.color), green(this.screenFlash.color), blue(this.screenFlash.color), alpha);
+        rect(0, 0, width, height);
+        pop();
+    }
+
+    /**
+     * 화면 흔들림 오프셋 계산
+     * @returns {{x: number, y: number}}
+     */
+    getShakeOffset() {
+        if (!this.screenShake.active) return { x: 0, y: 0 };
+
+        const elapsed = millis() - this.screenShake.startTime;
+        const progress = elapsed / this.screenShake.duration;
+
+        if (progress >= 1) {
+            this.screenShake.active = false;
+            return { x: 0, y: 0 };
+        }
+
+        // 감쇠하는 흔들림
+        const dampening = 1 - progress;
+        const intensity = this.screenShake.intensity * dampening;
+
+        return {
+            x: random(-intensity, intensity),
+            y: random(-intensity, intensity)
+        };
+    }
+
+    /**
+     * 카드 확대 효과 스케일 계산
+     * @returns {number}
+     */
+    getCardZoomScale() {
+        if (!this.cardZoom.active) return 1;
+
+        const elapsed = millis() - this.cardZoom.startTime;
+        const progress = elapsed / this.cardZoom.duration;
+
+        if (progress >= 1) {
+            this.cardZoom.active = false;
+            return 1;
+        }
+
+        // 확대 후 축소 (sin 커브)
+        return 1 + sin(progress * PI) * 0.5;
+    }
+
+    /**
+     * 확대 중인 카드 반환
+     * @returns {Card|null}
+     */
+    getZoomingCard() {
+        return this.cardZoom.active ? this.cardZoom.card : null;
+    }
+
+    /**
+     * 현재 활성화된 효과 확인
+     */
+    hasActiveEffects() {
+        return this.screenFlash.active || this.screenShake.active || this.cardZoom.active;
     }
 }
 

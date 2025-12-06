@@ -67,31 +67,6 @@ class GameScreen {
     }
 
     /**
-     * 점수 표시
-     * @private
-     * @param {number} x - x 좌표
-     * @param {number} y - y 좌표
-     * @param {number} score - 점수
-     */
-    _drawScoreDisplay(x, y, score) {
-        push();
-        textAlign(LEFT, CENTER);
-
-        // 아이콘 (별)
-        fill('#FFD700');
-        noStroke();
-        textSize(28);
-        text('⭐', x - 10, y - 2);
-
-        // 점수
-        fill(this.ui.colors.text.primary);
-        textSize(this.ui.fonts.ui);
-        textStyle(BOLD);
-        text(`×${score}`, x + 25, y);
-        pop();
-    }
-
-    /**
      * 시간 표시
      * @private
      * @param {number} x - x 좌표

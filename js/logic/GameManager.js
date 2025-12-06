@@ -310,6 +310,12 @@ class GameManager extends EventEmitter {
      * @param {Card} card2
      */
     _handleMatch(card1, card2) {
+        // 히든 카드 매칭인 경우 특별 처리
+        if (card1.isHiddenCard) {
+            this._handleHiddenMatch(card1, card2);
+            return;
+        }
+
         // 카드 상태 업데이트
         card1.setMatched();
         card2.setMatched();

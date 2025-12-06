@@ -20,9 +20,6 @@ class UIRenderer {
         this.helperMessageEndTime = 0;
         this.previewStartTime = null;  // 미리보기 시작 시간
 
-        // 하이스코어
-        this.highScoreManager = new HighScoreManager();
-
         // 디자인 시스템 - 레퍼런스 기반 파스텔 컬러
         this.colors = {
             // 배경색
@@ -61,12 +58,12 @@ class UIRenderer {
             heart: '#FF6B9D'
         };
 
-        // 폰트 설정
+        // 폰트 설정 (Cute Font용 +8 사이즈 업)
         this.fonts = {
-            title: 48,
-            button: 32,
-            ui: 24,
-            small: 18
+            title: 56,
+            button: 40,
+            ui: 32,
+            small: 26
         };
 
         // 애니메이션
@@ -173,72 +170,83 @@ class UIRenderer {
 
     /**
      * 곰 캐릭터 그리기
+     * @param {number} x - x 좌표
+     * @param {number} y - y 좌표
+     * @param {number} bearScale - 크기 배율
+     * @param {boolean} isHappy - true: 웃는 표정, false: 우는 표정
      */
     _drawBearCharacter(x, y, bearScale = 1, isHappy = false) {
         push();
         translate(x, y);
         scale(bearScale);
 
-        const bodySize = 80;
+        const faceSize = 80;
 
-        // 몸통
+        // 귀 (좌우)
         fill(this.colors.bear.body);
         stroke(this.colors.text.white);
         strokeWeight(4);
-        ellipse(0, 0, bodySize, bodySize * 1.2);
-
-        // 귀 (좌우)
-        ellipse(-bodySize * 0.4, -bodySize * 0.45, bodySize * 0.35, bodySize * 0.35);
-        ellipse(bodySize * 0.4, -bodySize * 0.45, bodySize * 0.35, bodySize * 0.35);
+        ellipse(-faceSize * 0.4, -faceSize * 0.45, faceSize * 0.4, faceSize * 0.4);
+        ellipse(faceSize * 0.4, -faceSize * 0.45, faceSize * 0.4, faceSize * 0.4);
 
         // 귀 안쪽
         fill(this.colors.bear.blush);
         noStroke();
-        ellipse(-bodySize * 0.4, -bodySize * 0.45, bodySize * 0.2, bodySize * 0.2);
-        ellipse(bodySize * 0.4, -bodySize * 0.45, bodySize * 0.2, bodySize * 0.2);
+        ellipse(-faceSize * 0.4, -faceSize * 0.45, faceSize * 0.2, faceSize * 0.2);
+        ellipse(faceSize * 0.4, -faceSize * 0.45, faceSize * 0.2, faceSize * 0.2);
 
-        // 얼굴
+        // 얼굴 (메인)
         fill(this.colors.bear.body);
         stroke(this.colors.text.white);
         strokeWeight(4);
-        ellipse(0, -bodySize * 0.1, bodySize * 0.85, bodySize * 0.75);
+        ellipse(0, 0, faceSize, faceSize);
 
         // 눈
         fill(this.colors.bear.face);
         noStroke();
         if (isHappy) {
-            // 웃는 눈
+            // 웃는 눈 (^ ^)
             stroke(this.colors.bear.face);
             strokeWeight(3);
             noFill();
-            arc(-bodySize * 0.2, -bodySize * 0.2, 12, 8, 0, PI);
-            arc(bodySize * 0.2, -bodySize * 0.2, 12, 8, 0, PI);
+            arc(-faceSize * 0.2, -faceSize * 0.1, 14, 10, 0, PI);
+            arc(faceSize * 0.2, -faceSize * 0.1, 14, 10, 0, PI);
         } else {
-            // 기본 눈
-            ellipse(-bodySize * 0.2, -bodySize * 0.2, 8, 8);
-            ellipse(bodySize * 0.2, -bodySize * 0.2, 8, 8);
+            // 우는 눈 (ㅠㅠ)
+            stroke(this.colors.bear.face);
+            strokeWeight(3);
+            noFill();
+            arc(-faceSize * 0.2, -faceSize * 0.05, 14, 10, PI, TWO_PI);
+            arc(faceSize * 0.2, -faceSize * 0.05, 14, 10, PI, TWO_PI);
+            // 눈물
+            fill('#87CEEB');
+            noStroke();
+            ellipse(-faceSize * 0.2, faceSize * 0.08, 5, 10);
+            ellipse(faceSize * 0.2, faceSize * 0.08, 5, 10);
         }
 
         // 코
         noStroke();
         fill(this.colors.bear.face);
-        ellipse(0, 0, 12, 10);
+        ellipse(0, faceSize * 0.1, 14, 12);
 
         // 입
         stroke(this.colors.bear.face);
         strokeWeight(2);
         noFill();
         if (isHappy) {
-            arc(0, 5, 20, 15, 0, PI);
+            // 웃는 입
+            arc(0, faceSize * 0.2, 20, 15, 0, PI);
         } else {
-            arc(0, 8, 16, 10, 0, PI);
+            // 슬픈 입
+            arc(0, faceSize * 0.28, 16, 10, PI, TWO_PI);
         }
 
         // 볼 (핑크)
         fill(this.colors.bear.blush);
         noStroke();
-        ellipse(-bodySize * 0.35, 0, 15, 12);
-        ellipse(bodySize * 0.35, 0, 15, 12);
+        ellipse(-faceSize * 0.32, faceSize * 0.1, 16, 12);
+        ellipse(faceSize * 0.32, faceSize * 0.1, 16, 12);
 
         pop();
     }
@@ -382,15 +390,19 @@ class UIRenderer {
         textSize(this.fonts.title);
         textStyle(BOLD);
 
-        // 배경
+        // 배경 (상단 바와 카드 영역 사이 중앙에 위치)
+        // 상단 바: ~80px, 카드 시작: ~280px → 중앙: 180px
         const boxWidth = 400;
-        const boxHeight = 100;
+        const boxHeight = 80;
+        const topBarEnd = 80;
+        const cardAreaStart = 260;
+        const messageY = topBarEnd + (cardAreaStart - topBarEnd - boxHeight) / 2;
         fill(255, 255, 255, alpha * 0.95);
         stroke(this.colors.text.primary);
         strokeWeight(4);
         rect(
             width / 2 - boxWidth / 2,
-            height / 2 - 200 - boxHeight / 2,
+            messageY,
             boxWidth,
             boxHeight,
             30
@@ -402,7 +414,7 @@ class UIRenderer {
             ? this.colors.button.easy
             : this.colors.button.hell;
         fill(red(color), green(color), blue(color), alpha);
-        text(this.currentMessage.text, width / 2, height / 2 - 200);
+        text(this.currentMessage.text, width / 2, messageY + boxHeight / 2);
 
         pop();
     }

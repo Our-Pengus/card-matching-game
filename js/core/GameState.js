@@ -201,24 +201,7 @@ class GameState {
      */
     getResultStats() {
         return {
-            isWin: this._isWin,
-            gameOverReason: this._gameOverReason,
-            score: this._score,
-            baseScore: this._baseScore,
-            comboBonus: this._comboBonus,
-            timeBonus: this._timeBonus,
-            heartsRemaining: this._hearts,
-            maxHearts: this._maxHearts,
-            elapsedTime: this.getElapsedSeconds(),
-            timeRemaining: this._timeRemaining,
-            attempts: this._attempts,
-            successCount: this._successCount,
-            failCount: this._failCount,
-            accuracy: this.getAccuracy(),
-            maxCombo: this._maxCombo,
-            matchedPairs: this._matchedPairs,
-            totalPairs: this.totalPairs,
-            difficulty: this._difficulty ? this._difficulty.name : 'N/A'
+            isWin: this._isWin
         };
     }
 
