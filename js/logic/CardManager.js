@@ -46,10 +46,18 @@ class CardManager {
             ? this._generateCardSets(sets, theme)
             : this._generateCardPairs(sets, theme);
 
-        // 2. 카드 섞기
+        // 2. 폭탄 카드 추가
+        if (difficulty.specialCards && difficulty.specialCards.bombs) {
+            for (let i = 0; i < difficulty.specialCards.bombs; i++) {
+                const bombId = -(i + 1);
+                cards.push(new Card(bombId, 0, 0, '', true));
+            }
+        }
+
+        // 3. 카드 섞기
         const shuffled = ArrayUtils.shuffle(cards);
 
-        // 3. 그리드 좌표 계산 및 할당
+        // 4. 그리드 좌표 계산 및 할당
         this._assignPositions(shuffled, difficulty);
 
         return shuffled;
@@ -144,14 +152,44 @@ class CardManager {
      * @param {Object} difficulty - 난이도 설정
      */
     _assignPositions(cards, difficulty) {
+        // 지옥 모드일 때 캔버스 크기 조정
+        const isHell = difficulty.name === '지옥';
+        const canvasWidth = isHell && CANVAS_CONFIG.hell ? CANVAS_CONFIG.hell.width : CANVAS_CONFIG.width;
+        const canvasHeight = isHell && CANVAS_CONFIG.hell ? CANVAS_CONFIG.hell.height : CANVAS_CONFIG.height;
+        
+        // 반응형 비율 조정: 그리드가 캔버스에 맞도록 카드 크기와 간격 조정
+        let cardWidth = this.config.width;
+        let cardHeight = this.config.height;
+        let margin = this.config.margin;
+        
+        if (isHell) {
+            // 그리드 전체 크기 계산
+            const gridWidth = difficulty.gridCols * cardWidth + (difficulty.gridCols - 1) * margin;
+            const gridHeight = difficulty.gridRows * cardHeight + (difficulty.gridRows - 1) * margin;
+            
+            // 캔버스에 맞도록 스케일 조정
+            const availableWidth = canvasWidth - 40; // 좌우 여백
+            const availableHeight = canvasHeight - 220; // 상하 여백 (상단 UI 포함)
+            
+            const scaleX = availableWidth / gridWidth;
+            const scaleY = availableHeight / gridHeight;
+            const scale = Math.min(scaleX, scaleY, 1.0); // 1.0을 넘지 않도록
+            
+            if (scale < 1.0) {
+                cardWidth = cardWidth * scale;
+                cardHeight = cardHeight * scale;
+                margin = margin * scale;
+            }
+        }
+        
         const gridConfig = {
-            canvasWidth: CANVAS_CONFIG.width,
-            canvasHeight: CANVAS_CONFIG.height,
+            canvasWidth: canvasWidth,
+            canvasHeight: canvasHeight,
             cols: difficulty.gridCols,
             rows: difficulty.gridRows,
-            cardWidth: this.config.width,
-            cardHeight: this.config.height,
-            margin: this.config.margin,
+            cardWidth: cardWidth,
+            cardHeight: cardHeight,
+            margin: margin,
             topOffset: 180 // 상단 UI 공간
         };
 

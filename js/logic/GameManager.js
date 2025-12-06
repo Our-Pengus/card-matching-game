@@ -205,6 +205,11 @@ class GameManager extends EventEmitter {
             return false;
         }
 
+        // 폭탄 카드 처리
+        if (card.isBombCard) {
+            return this._handleBombCard(card);
+        }
+
         // 카드 뒤집기 애니메이션
         if (typeof cardRenderer !== 'undefined') {
             cardRenderer.animateFlip(card, 300, true);
@@ -560,6 +565,86 @@ class GameManager extends EventEmitter {
         }, CARD_CONFIG.mismatchDelay || 1000);
     }
 
+    // ========== 폭탄 카드 처리 ==========
+
+    /**
+     * 폭탄 카드 클릭 처리
+     * @private
+     */
+    _handleBombCard(bombCard) {
+        if (typeof cardRenderer !== 'undefined') {
+            cardRenderer.animateFlip(bombCard, 300, true);
+        } else {
+            bombCard.flip();
+        }
+        this.emit('card:flip', bombCard);
+
+        const difficulty = this.state.difficulty;
+        const specialCards = difficulty.specialCards || {};
+
+        // 1% 확률: 즉사
+        if (specialCards.instantDeath && Math.random() < 0.01) {
+            if (typeof uiRenderer !== 'undefined') {
+                uiRenderer.showMessage('💀 폭탄 즉사!', 2000, 'error');
+            }
+            setTimeout(() => {
+                this._gameOver('bomb');
+            }, 1000);
+            return true;
+        }
+
+        // 3% 확률: 카드 섞임
+        if (specialCards.shuffle && Math.random() < 0.03) {
+            const cards = this.state.cards.filter(c => !c.isMatched && !c.isBombCard);
+            const matched = this.state.cards.filter(c => c.isMatched);
+            const bombs = this.state.cards.filter(c => c.isBombCard);
+            const shuffled = ArrayUtils.shuffle(cards);
+            const allCards = [...matched, ...bombs, ...shuffled];
+            const positions = GridCalculator.calculateAllPositions(allCards.length, {
+                canvasWidth: CANVAS_CONFIG.width,
+                canvasHeight: CANVAS_CONFIG.height,
+                cols: difficulty.gridCols,
+                rows: difficulty.gridRows,
+                cardWidth: CARD_CONFIG.width,
+                cardHeight: CARD_CONFIG.height,
+                margin: CARD_CONFIG.margin,
+                topOffset: 180
+            });
+            allCards.forEach((c, i) => c.setPosition(positions[i].x, positions[i].y));
+            this.state.setCards(allCards);
+            if (typeof uiRenderer !== 'undefined') {
+                uiRenderer.showMessage('💥 카드가 섞였어요!', 2000, 'error');
+            }
+        }
+
+        // 기본 효과: 시간 감소
+        const penalty = difficulty.timePenalty * 1.5;
+        const currentTime = this.state.timeRemaining || this.state.timeLimitSeconds;
+        const newTime = Math.max(0, currentTime - penalty);
+        
+        // timeLimitSeconds를 감소시켜서 타이머가 올바르게 계산하도록 함
+        this.state._timeLimitSeconds = Math.max(0, this.state.timeLimitSeconds - penalty);
+        
+        // _startTime을 조정하여 경과 시간을 늘림 (타이머가 올바르게 계산하도록)
+        if (this.state.startTime) {
+            this.state._startTime = this.state.startTime - (penalty * 1000);
+        }
+        
+        // _timeRemaining 직접 업데이트
+        this.state._timeRemaining = newTime;
+        
+        if (typeof uiRenderer !== 'undefined') {
+            uiRenderer.showMessage(`💣 시간 -${Math.round(penalty)}초!`, 2000, 'error');
+        }
+        
+        if (newTime <= 0) {
+            this._gameOver('time');
+        }
+        this.state.clearSelection();
+
+        return true;
+    }
+
     // ========== 타이머 관리 ==========
 
     /**
@@ -570,11 +655,19 @@ class GameManager extends EventEmitter {
         this._stopTimer();
 
         this.timerInterval = setInterval(() => {
-            const elapsed = this.state.getElapsedSeconds();
-            const remaining = this.state.timeLimitSeconds - elapsed;
+            // _timeRemaining이 직접 설정된 경우(폭탄 카드 등) 이를 사용
+            // 그렇지 않으면 timeLimitSeconds - elapsed로 계산
+            let remaining;
+            if (this.state._timeRemaining !== undefined && this.state._timeRemaining !== null) {
+                // _timeRemaining이 설정되어 있으면 1초씩 감소
+                remaining = Math.max(0, this.state._timeRemaining - 1);
+            } else {
+                const elapsed = this.state.getElapsedSeconds();
+                remaining = this.state.timeLimitSeconds - elapsed;
+            }
 
             this.state.updateTime(remaining);
-            this.emit('timer:update', { remaining, elapsed });
+            this.emit('timer:update', { remaining, elapsed: this.state.getElapsedSeconds() });
 
             if (remaining <= 0) {
                 this._gameOver('time');

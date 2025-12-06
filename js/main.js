@@ -17,6 +17,7 @@ let soundManager;     // SoundManager: 효과음 관리
 
 let hoveredCard = null;       // 현재 호버 중인 카드
 let isConfettiActive = false; // 색종이 효과 활성화 여부
+let logoImage;                // 로고 이미지
 
 // ========== p5.js 라이프사이클 ==========
 
@@ -30,6 +31,9 @@ function setup() {
 
     // 텍스트 설정 (Cute Font: 귀여운 한글 폰트)
     textFont('Cute Font, -apple-system, sans-serif');
+
+    // 로고 이미지 로드
+    logoImage = loadImage('assets/images/logo.png');
 
     // 인스턴스 생성
     initializeInstances();

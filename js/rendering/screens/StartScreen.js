@@ -59,6 +59,21 @@ class StartScreen {
             this.ui.colors.button.easy,
             'start'
         );
+
+        // 로고 이미지 (오른쪽 하단)
+        if (typeof logoImage !== 'undefined' && logoImage) {
+            const logoMargin = 30;
+            const logoSize = 100;
+            
+            imageMode(CENTER);
+            image(
+                logoImage,
+                width - logoMargin - logoSize / 2,
+                height - logoMargin - logoSize / 2,
+                logoSize,
+                logoSize
+            );
+        }
     }
 
     /**
