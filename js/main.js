@@ -17,6 +17,7 @@ let soundManager;     // SoundManager: 효과음 관리
 
 let hoveredCard = null;       // 현재 호버 중인 카드
 let isConfettiActive = false; // 색종이 효과 활성화 여부
+let logoImage;                // 로고 이미지
 
 // ========== p5.js 라이프사이클 ==========
 
@@ -30,6 +31,9 @@ function setup() {
 
     // 텍스트 설정 (Cute Font: 귀여운 한글 폰트)
     textFont('Cute Font, -apple-system, sans-serif');
+
+    // 로고 이미지 로드
+    logoImage = loadImage('assets/images/logo.png');
 
     // 인스턴스 생성
     initializeInstances();
@@ -289,9 +293,9 @@ function setupGameCallbacks() {
     // 카드 뒤집기
     gameManager.on('card:flip', (card) => {
         console.log('Card flipped:', card.id);
-        // 히든 카드인 경우 특별 효과음
+        // 히든 카드 클릭 시 특별 효과음
         if (card.isHiddenCard) {
-            soundManager.play('hidden_click', 0.7);
+            soundManager.play('hidden_click', 0.6);
         } else {
             soundManager.play('click', 0.5);
         }
@@ -302,12 +306,6 @@ function setupGameCallbacks() {
         const { card1, card2, points } = data;
         console.log(`Match! Cards ${card1.id} and ${card2.id}, +${points} points`);
 
-        // 히든 카드는 별도 처리 (hidden:match 이벤트에서 처리)
-        if (card1.isHiddenCard) {
-            cardRenderer.animateMatch(card1, card2);
-            return;
-        }
-
         uiRenderer.showMessage('짝 성공!', 1000, 'success');
         cardRenderer.animateMatch(card1, card2);
         soundManager.play('match', 0.7);
@@ -316,6 +314,23 @@ function setupGameCallbacks() {
         const centerX = (card1.x + card2.x) / 2 + CARD_CONFIG.width / 2;
         const centerY = (card1.y + card2.y) / 2 + CARD_CONFIG.height / 2;
         particleSystem.createMatchParticles(centerX, centerY);
+    });
+
+    // 히든 카드 매칭 (보너스 효과)
+    gameManager.on('hidden:match', (data) => {
+        const { card1, card2, points } = data;
+        console.log(`Hidden Card Match! Cards ${card1.id} and ${card2.id}, +${points} points`);
+
+        // 특별 효과음 재생
+        soundManager.play('hidden_match', 0.8);
+
+        // 애니메이션
+        cardRenderer.animateMatch(card1, card2);
+        uiRenderer.showMessage('✨ 히든 카드 발견!', 1500, 'success');
+
+        // 전체 카드 공개 (1초간)
+        const revealDuration = typeof HIDDEN_CARD !== 'undefined' ? HIDDEN_CARD.revealDuration : 1000;
+        revealAllCards(revealDuration);
     });
 
     // 매칭 실패
@@ -354,11 +369,22 @@ function setupGameCallbacks() {
     // 게임 초기화
     gameManager.on('game:init', (data) => {
         console.log('Game initialized:', data);
+        
+        // 지옥 난이도일 때 캔버스 크기 조정
+        if (data.difficulty && data.difficulty.name === '지옥' && CANVAS_CONFIG.hell) {
+            resizeCanvas(CANVAS_CONFIG.hell.width, CANVAS_CONFIG.hell.height);
+            console.log(`[Canvas] Resized to ${CANVAS_CONFIG.hell.width}x${CANVAS_CONFIG.hell.height} for HELL difficulty`);
+        } else if (data.difficulty && data.difficulty.name !== '지옥') {
+            // 다른 난이도로 돌아올 때 기본 크기로 복원
+            resizeCanvas(CANVAS_CONFIG.width, CANVAS_CONFIG.height);
+        }
     });
 
     // 미리 보기 시작
     gameManager.on('game:preview:start', (data) => {
         console.log('Preview started:', data);
+        // 미리보기 시작 시간 저장
+        uiRenderer.previewStartTime = Date.now();
     });
 
     // 미리 보기 종료
@@ -411,30 +437,6 @@ function setupGameCallbacks() {
         console.log('Game reset');
     });
 
-    // 히든 카드 매칭 - 전체 카드 공개 이벤트
-    gameManager.on('hidden:match', (data) => {
-        const { card1, card2, points } = data;
-        console.log('🎉 Hidden card matched!', card1.id, card2.id);
-
-        // 특별 효과음 재생
-        soundManager.play('hidden_match', 0.8);
-
-        // 특별 시각 효과 (플래시 + 폭죽 + 흔들림)
-        const centerX = (card1.x + card2.x) / 2 + CARD_CONFIG.width / 2;
-        const centerY = (card1.y + card2.y) / 2 + CARD_CONFIG.height / 2;
-        particleSystem.triggerGoldenFlash(500);
-        particleSystem.triggerHiddenExplosion(centerX, centerY);
-        particleSystem.triggerScreenShake(12, 400);
-
-        // 특별 메시지 표시
-        uiRenderer.showMessage('✨히든 카드 발견✨', 1500, 'success');
-
-        // 순차 연출: 효과 후 전체 카드 공개
-        setTimeout(() => {
-            revealAllCards(HIDDEN_CARD.revealDuration);
-        }, 1000);
-    });
-
     // 에러 처리
     gameManager.on('error', (data) => {
         const { method, error } = data;
@@ -443,28 +445,31 @@ function setupGameCallbacks() {
     });
 }
 
-// ========== 히든 카드 특수 기능 ==========
-
 /**
- * 모든 카드를 일시적으로 공개
+ * 모든 카드 공개 (히든 카드 매칭 시)
  * @param {number} duration - 공개 시간 (ms)
  */
 function revealAllCards(duration = 1000) {
-    const cards = gameState.cards;
-    const unflippedCards = cards.filter(card => !card.isFlipped && !card.isMatched);
+    if (!gameState || !gameState.cards) return;
 
-    // 모든 카드 앞면으로 뒤집기
-    unflippedCards.forEach(card => {
-        card.setFlipped(true);
-        cardRenderer.animateFlip(card, 200, true);
+    // 모든 카드 뒤집기
+    gameState.cards.forEach(card => {
+        if (!card.isMatched && !card.isBombCard) {
+            card.setFlipped(true);
+            if (typeof cardRenderer !== 'undefined') {
+                cardRenderer.animateFlip(card, 200, true);
+            }
+        }
     });
 
     // duration 후 다시 뒤집기
     setTimeout(() => {
-        unflippedCards.forEach(card => {
-            if (!card.isMatched) {
+        gameState.cards.forEach(card => {
+            if (!card.isMatched && !card.isBombCard && !card.isHiddenCard) {
                 card.setFlipped(false);
-                cardRenderer.animateFlip(card, 200, false);
+                if (typeof cardRenderer !== 'undefined') {
+                    cardRenderer.animateFlip(card, 200, false);
+                }
             }
         });
     }, duration);
