@@ -259,3 +259,273 @@ canvas:active {
 .pulse {
     animation: pulse 2s ease-in-out infinite;
 }
+
+/* ============================================
+   엔딩 크레딧
+   ============================================ */
+
+/* 오버레이 배경 */
+#credits-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+#credits-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* 엔딩 크레딧 패널 - 캔버스 위 오버레이 */
+#ending-credits {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    width: 500px;
+    max-height: 700px;
+    overflow-y: auto;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 248, 245, 0.98) 100%);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+}
+
+#ending-credits.visible {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* 토글 버튼 - 캔버스 우측 하단 */
+#credits-toggle-btn {
+    position: fixed;
+    bottom: calc(50% - 380px); /* 캔버스 하단 근처 */
+    right: calc(50% - 580px); /* 캔버스 우측 근처 */
+    padding: 12px 20px;
+    background: linear-gradient(135deg, var(--color-primary) 0%, #5a4a3a 100%);
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    z-index: 998;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+#credits-toggle-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+#credits-toggle-btn span {
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+#credits-toggle-btn::before {
+    content: 'ℹ️';
+    font-size: 16px;
+}
+
+/* 닫기 버튼 */
+#ending-credits .close-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 36px;
+    height: 36px;
+    background: rgba(0, 0, 0, 0.08);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    color: #666;
+}
+
+#ending-credits .close-btn:hover {
+    background: rgba(0, 0, 0, 0.15);
+    transform: scale(1.1);
+    color: #333;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateY(-50%) translateX(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(-50%) translateX(0);
+    }
+}
+
+@keyframes fadeInOverlay {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+#ending-credits h2 {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--color-primary);
+    text-align: center;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+}
+
+#ending-credits .subtitle {
+    font-size: 13px;
+    color: #666;
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px dashed var(--color-card-back);
+}
+
+#ending-credits .section {
+    margin-bottom: 16px;
+}
+
+#ending-credits .section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+#ending-credits .section-title::before {
+    content: '✦';
+    color: var(--color-button-hard);
+}
+
+#ending-credits .section-content {
+    font-size: 12px;
+    color: #555;
+    line-height: 1.6;
+    padding-left: 16px;
+}
+
+#ending-credits .team-members {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-left: 16px;
+}
+
+#ending-credits .team-member {
+    background: var(--color-card-back);
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+#ending-credits .ai-notice {
+    background: linear-gradient(135deg, #E8F4FD 0%, #D4E8F7 100%);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 16px;
+    border-left: 4px solid var(--color-primary);
+}
+
+#ending-credits .ai-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--color-primary);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+#ending-credits .tech-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-left: 16px;
+}
+
+#ending-credits .tech-tag {
+    background: rgba(46, 92, 138, 0.1);
+    color: var(--color-primary);
+    padding: 3px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+#ending-credits .feature-list {
+    font-size: 11px;
+    color: #666;
+    line-height: 1.8;
+    padding-left: 16px;
+}
+
+#ending-credits .feature-list li {
+    list-style: none;
+    position: relative;
+    padding-left: 14px;
+}
+
+#ending-credits .feature-list li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--color-button-hard);
+}
+
+#ending-credits::-webkit-scrollbar {
+    width: 6px;
+}
+
+#ending-credits::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#ending-credits::-webkit-scrollbar-thumb {
+    background: var(--color-card-back);
+    border-radius: 3px;
+}
+
+/* 반응형 - 작은 화면에서 조정 */
+@media (max-width: 1200px) {
+    #ending-credits {
+        width: 50%;
+        left: 50%;
+        padding: 20px;
+    }
+}

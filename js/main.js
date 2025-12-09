@@ -14,6 +14,7 @@ let cardRenderer;     // CardRenderer: 카드 렌더링
 let uiRenderer;       // UIRenderer: UI 렌더링
 let particleSystem;   // ParticleSystem: 파티클 효과
 let soundManager;     // SoundManager: 효과음 관리
+let endingCredits;    // EndingCredits: 엔딩 크레딧
 
 let hoveredCard = null;       // 현재 호버 중인 카드
 let isConfettiActive = false; // 색종이 효과 활성화 여부
@@ -250,6 +251,9 @@ function handleResultClick() {
         isConfettiActive = false;
         particleSystem.clear();
 
+        // 엔딩 크레딧 숨기기
+        endingCredits.hide();
+
         // 현재 난이도로 재시작
         const difficulty = gameState.difficulty;
         gameManager.startGame(difficulty);
@@ -257,6 +261,10 @@ function handleResultClick() {
         // 난이도 선택 화면으로 이동
         isConfettiActive = false;
         particleSystem.clear();
+
+        // 엔딩 크레딧 숨기기
+        endingCredits.hide();
+
         gameManager.resetGame();
         gameState.setPhase(GAME_STATE.DIFFICULTY);
     }
@@ -282,6 +290,9 @@ function initializeInstances() {
 
     // Sound
     soundManager = new SoundManager();
+
+    // UI - 엔딩 크레딧 (결과 화면에서만 표시)
+    endingCredits = new EndingCredits();
 
     console.log('All instances initialized');
 }
@@ -409,6 +420,10 @@ function setupGameCallbacks() {
 
         // 클리어 사운드
         soundManager.play('complete', 0.8);
+
+        // 엔딩 크레딧 표시 및 자동 열기
+        endingCredits.show();
+        endingCredits.open();
 
         setTimeout(() => {
             uiRenderer.showMessage('축하합니다! 🎉', 2000, 'success');
