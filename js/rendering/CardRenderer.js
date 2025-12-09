@@ -24,11 +24,76 @@ class CardRenderer {
             borderWidth: 4,          // 테두리 두께
             shadowOffset: 4,         // 그림자 오프셋
             hoverLift: 8,           // 호버 시 들림
-            hoverSpeed: 0.2         // 호버 애니메이션 속도
+            hoverSpeed: 0.2,        // 호버 애니메이션 속도
+            iconScale: 0.4          // 아이콘 크기 비율
         };
 
-        // 카드 이미지 캐시 (동적 로딩)
+        // 카드 이미지 캐시
         this.cardImages = new Map();
+        this.hiddenCardImage = null;
+        this.bombCardImage = null;
+        this.imagesLoaded = false;
+
+        // 이미지 선로드
+        this._loadAllCardImages();
+        this._loadHiddenCardImage();
+        this._loadBombCardImage();
+    }
+
+    /**
+     * 폭탄 카드 이미지 로드
+     * @private
+     */
+    _loadBombCardImage() {
+        loadImage('assets/images/cards/bomb.png', (img) => {
+            this.bombCardImage = img;
+            console.log('Bomb card image loaded');
+        }, (err) => {
+            console.warn('Failed to load bomb card image:', err);
+        });
+    }
+
+    /**
+     * 모든 카드 이미지 로드
+     * @private
+     */
+    _loadAllCardImages() {
+        if (typeof CARD_IMAGES === 'undefined') {
+            console.warn('CARD_IMAGES not defined');
+            return;
+        }
+
+        let loadedCount = 0;
+        const totalImages = CARD_IMAGES.length;
+
+        CARD_IMAGES.forEach((path, index) => {
+            loadImage(path, (img) => {
+                this.cardImages.set(index, img);
+                loadedCount++;
+                if (loadedCount === totalImages) {
+                    this.imagesLoaded = true;
+                    console.log(`All ${totalImages} card images loaded`);
+                }
+            }, (err) => {
+                console.warn(`Failed to load card image ${index}:`, path, err);
+                loadedCount++;
+            });
+        });
+    }
+
+    /**
+     * 히든 카드 이미지 로드
+     * @private
+     */
+    _loadHiddenCardImage() {
+        if (typeof HIDDEN_CARD !== 'undefined' && HIDDEN_CARD.enabled) {
+            loadImage(HIDDEN_CARD.imagePath, (img) => {
+                this.hiddenCardImage = img;
+                console.log('Hidden card image loaded');
+            }, (err) => {
+                console.warn('Failed to load hidden card image:', err);
+            });
+        }
     }
 
     // ========================================
@@ -95,74 +160,119 @@ class CardRenderer {
      * 카드 앞면 (이미지 표시)
      */
     _drawFrontFace(card) {
+        // 히든 카드인 경우 별도 렌더링
+        if (card.isHiddenCard) {
+            this._drawHiddenCardFace(card);
+            return;
+        }
+
+        // 폭탄 카드인 경우 별도 렌더링
+        if (card.isBombCard) {
+            this._drawBombCardFace(card);
+            return;
+        }
+
         rectMode(CENTER);
         imageMode(CENTER);
 
         // 그림자
         this._drawCardShadow();
 
-        // 카드 이미지 가져오기 (캐시에서 또는 동적 로드)
-        let cardImage = this.cardImages.get(card.imagePath);
-        
-        // 이미지가 캐시에 없고 경로가 있으면 로드
-        if (!cardImage && card.imagePath) {
-            loadImage(card.imagePath, (img) => {
-                this.cardImages.set(card.imagePath, img);
-            }, (err) => {
-                console.warn('Failed to load card image:', card.imagePath, err);
-            });
-        }
+        // 카드 이미지 가져오기 (인덱스 기반)
+        const cardImage = this.cardImages.get(card.id % this.cardImages.size);
 
-        // 폭탄 카드 배경
-        if (card.isBombCard) {
-            fill('#FF4444');
-            stroke('#FF0000');
-            strokeWeight(this.style.borderWidth + 2);
-            rect(0, 0, this.config.width, this.config.height, this.style.borderRadius);
+        if (cardImage) {
+            // 이미지를 카드 크기에 맞게 그리기
+            image(cardImage, 0, 0, this.config.width, this.config.height);
         } else {
-            // 일반 카드 배경
-            fill('#FFFFFF');
+            // 이미지 로드 전 대체 표시
+            fill('#E0E0E0');
             stroke(this.colors.border);
             strokeWeight(this.style.borderWidth);
             rect(0, 0, this.config.width, this.config.height, this.style.borderRadius);
+
+            // 로딩 표시
+            fill(150);
+            noStroke();
+            textAlign(CENTER, CENTER);
+            textSize(14);
+            text('Loading...', 0, 0);
         }
 
-        // 이미지 표시 (원본 비율 유지, 위아래 버티컬 정렬, 여백 회색)
-        if (cardImage) {
-            // 이미지 원본 비율 계산
-            const imgAspect = cardImage.width / cardImage.height;
-            const cardAspect = this.config.width / this.config.height;
-            
-            let imgWidth, imgHeight;
-            
-            if (imgAspect > cardAspect) {
-                // 이미지가 더 넓음 - 카드 너비에 맞춤
-                imgWidth = this.config.width;
-                imgHeight = this.config.width / imgAspect;
-            } else {
-                // 이미지가 더 높음 - 카드 높이에 맞춤
-                imgHeight = this.config.height;
-                imgWidth = this.config.height * imgAspect;
-            }
-            
-            // 여백 회색으로 채우기
-            fill(200, 200, 200);
+        // 매칭 완료 시 오버레이
+        if (card.isMatched) {
+            fill(this.colors.matched);
             noStroke();
             rect(0, 0, this.config.width, this.config.height, this.style.borderRadius);
-            
-            // 이미지 중앙 배치 (imageMode(CENTER)이므로 0, 0이 중심점)
-            // 원본 비율 유지, 위아래 버티컬 정렬
-            image(cardImage, 0, 0, imgWidth, imgHeight);
-        } else if (card.imagePath) {
-            // 이미지 로드 중 대체 표시
-            fill(200, 200, 200, 100);
-            noStroke();
-            rect(0, 0, this.config.width, this.config.height, this.style.borderRadius);
-            
-            fill(150);
+
+            // 체크 마크
+            fill(255, 255, 255);
+            textSize(this.config.width * 0.3);
             textAlign(CENTER, CENTER);
-            textSize(12);
-            text('Loading...', 0, 0);
+            text('✓', 0, 0);
+        }
+    }
+
+    /**
+     * 폭탄 카드 앞면 렌더링
+     * @private
+     */
+    _drawBombCardFace(card) {
+        rectMode(CENTER);
+        imageMode(CENTER);
+
+        // 그림자
+        this._drawCardShadow();
+
+        // 카드 배경 (빨간색 계열)
+        fill('#FF4444');
+        stroke('#FF0000');
+        strokeWeight(this.style.borderWidth + 2);
+        rect(0, 0, this.config.width, this.config.height, this.style.borderRadius);
+
+        // 폭탄 카드 이미지
+        if (this.bombCardImage) {
+            // 이미지를 카드 크기에 맞게 그리기
+            image(this.bombCardImage, 0, 0, this.config.width, this.config.height);
+        } else {
+            // 이미지 로드 전 대체 아이콘
+            fill(255);
+            noStroke();
+            textAlign(CENTER, CENTER);
+            textSize(this.config.width * this.style.iconScale);
+            text('💣', 0, 0);
+        }
+    }
+
+    /**
+     * 히든 카드 앞면 렌더링
+     * @private
+     */
+    _drawHiddenCardFace(card) {
+        rectMode(CENTER);
+        imageMode(CENTER);
+
+        // 그림자
+        this._drawCardShadow();
+
+        // 카드 배경 (금색 계열)
+        fill('#FFD700');
+        stroke(this.colors.border);
+        strokeWeight(this.style.borderWidth);
+        rect(0, 0, this.config.width, this.config.height, this.style.borderRadius);
+
+        // 히든 카드 이미지
+        if (this.hiddenCardImage) {
+            // 이미지를 카드 크기에 맞게 그리기
+            const imgSize = this.config.width * 0.8;
+            image(this.hiddenCardImage, 0, 0, imgSize, imgSize);
+        } else {
+            // 이미지 로드 전 대체 아이콘
+            fill(255);
+            noStroke();
+            textAlign(CENTER, CENTER);
+            textSize(this.config.width * this.style.iconScale);
+            text('👤', 0, 0);
         }
 
         // 매칭 완료 시 오버레이
