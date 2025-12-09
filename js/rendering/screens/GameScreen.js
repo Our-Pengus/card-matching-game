@@ -21,11 +21,6 @@ class GameScreen {
         // 상단 UI 바
         this._drawTopBar(gameState);
 
-        // 미리보기 중 카운트다운 표시
-        if (gameState.isPreview()) {
-            this._drawPreviewCountdown(gameState);
-        }
-
         // 헬퍼 메시지
         if (this.ui.helperMessage && millis() < this.ui.helperMessageEndTime) {
             this.ui._drawHelperMessage();
@@ -93,59 +88,6 @@ class GameScreen {
     }
 
     /**
-     * 시간 표시 (미리보기 카운트다운 포함)
-     * @private
-     * @param {number} x - x 좌표
-     * @param {number} y - y 좌표
-     * @param {GameState} gameState - 게임 상태
-     */
-    _drawTimeDisplayWithPreview(x, y, gameState) {
-        push();
-        textAlign(CENTER, CENTER);
-
-        const difficulty = gameState.difficulty;
-        if (!difficulty || !difficulty.previewTime) {
-            this._drawTimeDisplay(x, y, gameState.timeRemaining);
-            pop();
-            return;
-        }
-
-        // 미리보기 시작 시간 계산
-        const previewStartTime = this.ui.previewStartTime || Date.now();
-        const elapsed = Date.now() - previewStartTime;
-        const remaining = Math.max(0, difficulty.previewTime - elapsed);
-        const previewSeconds = Math.ceil(remaining / 1000);
-
-        // 시간 배경 (둥근 박스) - 더 넓게
-        const boxWidth = 220;
-        const boxHeight = 50;
-
-        fill(255, 255, 255);
-        stroke(this.ui.colors.text.primary);
-        strokeWeight(3);
-        rect(x - boxWidth / 2, y - boxHeight / 2, boxWidth, boxHeight, 25);
-
-        // 시간 텍스트 (왼쪽)
-        noStroke();
-        fill(this.ui.colors.text.primary);
-        textSize(this.ui.fonts.ui);
-        textStyle(BOLD);
-
-        const minutes = floor(gameState.timeRemaining / 60);
-        const seconds = gameState.timeRemaining % 60;
-        const timeStr = `${minutes}:${nf(seconds, 2)}`;
-        text(timeStr, x - 40, y);
-
-        // 미리보기 카운트다운 (오른쪽)
-        fill('#FF6B6B');  // 빨간색으로 강조
-        textSize(this.ui.fonts.small);
-        textStyle(BOLD);
-        text(`미리보기: ${previewSeconds}초`, x + 60, y);
-        
-        pop();
-    }
-
-    /**
      * 하트 표시
      * @private
      * @param {number} x - x 좌표
@@ -183,43 +125,6 @@ class GameScreen {
         pop();
     }
 
-    /**
-     * 미리보기 카운트다운 표시
-     * @private
-     * @param {GameState} gameState - 게임 상태
-     */
-    _drawPreviewCountdown(gameState) {
-        const difficulty = gameState.difficulty;
-        if (!difficulty || !difficulty.previewTime) return;
-
-        // 미리보기 시작 시간 계산 (GameManager에서 저장된 시간 사용)
-        const previewStartTime = this.ui.previewStartTime || Date.now();
-        const elapsed = Date.now() - previewStartTime;
-        const remaining = Math.max(0, difficulty.previewTime - elapsed);
-        const seconds = Math.ceil(remaining / 1000);
-
-        // 중앙에 큰 카운트다운 표시
-        push();
-        textAlign(CENTER, CENTER);
-        textSize(72);
-        textStyle(BOLD);
-        
-        // 반투명 배경
-        fill(0, 0, 0, 100);
-        noStroke();
-        rectMode(CENTER);
-        rect(width / 2, height / 2, 300, 120, 20);
-
-        // 카운트다운 숫자
-        fill(255, 255, 255);
-        text(`${seconds}`, width / 2, height / 2 - 10);
-
-        // 안내 메시지
-        textSize(24);
-        fill(255, 255, 255, 200);
-        text('카드 위치를 기억하세요!', width / 2, height / 2 + 50);
-        pop();
-    }
 }
 
 // ES6 모듈 내보내기

@@ -127,9 +127,34 @@ class CardRenderer {
             rect(0, 0, this.config.width, this.config.height, this.style.borderRadius);
         }
 
-        // 이미지 표시
+        // 이미지 표시 (원본 비율 유지, 위아래 버티컬 정렬, 여백 회색)
         if (cardImage) {
-            image(cardImage, 0, 0, this.config.width, this.config.height);
+            // 이미지 원본 비율 계산
+            const imgAspect = cardImage.width / cardImage.height;
+            const cardAspect = this.config.width / this.config.height;
+            
+            let imgWidth, imgHeight;
+            let imgX = 0, imgY = 0;
+            
+            if (imgAspect > cardAspect) {
+                // 이미지가 더 넓음 - 카드 너비에 맞춤
+                imgWidth = this.config.width;
+                imgHeight = this.config.width / imgAspect;
+                imgY = (this.config.height - imgHeight) / 2; // 위아래 버티컬 정렬
+            } else {
+                // 이미지가 더 높음 - 카드 높이에 맞춤
+                imgHeight = this.config.height;
+                imgWidth = this.config.height * imgAspect;
+                imgX = (this.config.width - imgWidth) / 2;
+            }
+            
+            // 여백 회색으로 채우기
+            fill(200, 200, 200);
+            noStroke();
+            rect(0, 0, this.config.width, this.config.height, this.style.borderRadius);
+            
+            // 이미지 중앙 배치 (원본 비율 유지, 위아래 버티컬 정렬)
+            image(cardImage, imgX, imgY, imgWidth, imgHeight);
         } else if (card.imagePath) {
             // 이미지 로드 중 대체 표시
             fill(200, 200, 200, 100);

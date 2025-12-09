@@ -41,7 +41,7 @@ const DIFFICULTY = {
     },
     HARD: {
         name: '상',
-        pairs: 14,          // 15쌍 = 30장 (폭탄 2장 포함하여 총 32장)
+        pairs: 15,          // 15쌍 = 30장 (폭탄 2장 포함하여 총 32장)
         timeLimit: 90,      // 1.5분
         gridCols: 8,
         gridRows: 4,
